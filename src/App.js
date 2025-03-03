@@ -40,6 +40,15 @@ function App() {
     
     // 更新CSS变量
     document.documentElement.setAttribute('data-theme', newMode ? 'dark' : 'light');
+    
+    // 强制重新渲染输出区域
+    if (output) {
+      const tempOutput = output;
+      setOutput('');
+      setTimeout(() => {
+        setOutput(tempOutput);
+      }, 10);
+    }
   };
 
   // 初始化时设置CSS变量

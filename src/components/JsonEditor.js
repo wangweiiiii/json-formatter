@@ -39,6 +39,9 @@ const JsonEditor = ({ value, onChange, className, darkMode }) => {
         overflow: 'hidden',
         border: `1px solid ${darkMode ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.1)'}`,
         transition: 'all 0.3s ease',
+        background: darkMode ? 'var(--glass-bg-color)' : 'var(--glass-bg-color)',
+        backdropFilter: 'blur(15px)',
+        WebkitBackdropFilter: 'blur(15px)',
       }}
     >
       <Box sx={{ p: 2, borderBottom: `1px solid ${darkMode ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.1)'}` }}>

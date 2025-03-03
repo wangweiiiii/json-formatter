@@ -329,8 +329,24 @@ const JsonViewer = ({ value, error, className, darkMode }) => {
         containerRef.current.classList.add('light-mode');
         containerRef.current.classList.remove('dark-mode');
       }
+      
+      // 强制重新渲染语法高亮器
+      if (!collapsibleJson) {
+        setCollapsibleJson('');
+        if (value) {
+          try {
+            const parsed = JSON.parse(value);
+            const lines = generateFlatJson(parsed);
+            const html = buildJsonHtml(lines);
+            setCollapsibleJson(html);
+          } catch (err) {
+            // 如果解析失败，保持原样显示
+            setCollapsibleJson(value);
+          }
+        }
+      }
     }
-  }, [darkMode]);
+  }, [darkMode, value, generateFlatJson, buildJsonHtml, collapsibleJson]);
 
   return (
     <Paper 
@@ -343,6 +359,9 @@ const JsonViewer = ({ value, error, className, darkMode }) => {
         overflow: 'hidden',
         border: `1px solid ${darkMode ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.1)'}`,
         transition: 'all 0.3s ease',
+        background: darkMode ? 'var(--glass-bg-color)' : 'var(--glass-bg-color)',
+        backdropFilter: 'blur(15px)',
+        WebkitBackdropFilter: 'blur(15px)',
       }}
     >
       <Box sx={{ 
@@ -397,12 +416,14 @@ const JsonViewer = ({ value, error, className, darkMode }) => {
           flex: 1, 
           overflow: 'auto',
           position: 'relative',
+          backgroundColor: 'transparent',
           '& .json-viewer-container': {
             padding: '16px',
             fontFamily: "'Roboto Mono', monospace",
             fontSize: '14px',
             lineHeight: '1.5',
             color: darkMode ? 'white' : '#333',
+            backgroundColor: 'transparent',
           },
           '& .json-line': {
             display: 'flex',
@@ -494,6 +515,7 @@ const JsonViewer = ({ value, error, className, darkMode }) => {
               backgroundColor: 'transparent',
               height: '100%',
               color: darkMode ? 'white' : '#333',
+              background: 'transparent',
             }}
             showLineNumbers
             wrapLines={wrapLines}
@@ -503,6 +525,21 @@ const JsonViewer = ({ value, error, className, darkMode }) => {
               paddingRight: '16px',
               color: darkMode ? 'rgba(255, 255, 255, 0.5)' : 'rgba(0, 0, 0, 0.4)',
             }}
+            codeTagProps={{
+              style: {
+                backgroundColor: 'transparent',
+                background: 'transparent',
+              }
+            }}
+            PreTag={({ children, ...rest }) => (
+              <pre {...rest} style={{ 
+                backgroundColor: 'transparent',
+                background: 'transparent',
+                margin: 0
+              }}>
+                {children}
+              </pre>
+            )}
           >
             {value || ''}
           </SyntaxHighlighter>
