@@ -1,0 +1,10 @@
+{
+  "files": {
+    "main.js": "/json-formatter/static/js/main.b80815c9.js",
+    "index.html": "/json-formatter/index.html",
+    "main.b80815c9.js.map": "/json-formatter/static/js/main.b80815c9.js.map"
+  },
+  "entrypoints": [
+    "static/js/main.b80815c9.js"
+  ]
+}
