@@ -318,6 +318,20 @@ const JsonViewer = ({ value, error, className, darkMode }) => {
     }
   }, [value, generateFlatJson, buildJsonHtml, setupCollapsible]);
 
+  // 确保暗黑模式变化时重新应用样式
+  useEffect(() => {
+    // 重新应用暗黑模式样式
+    if (containerRef.current) {
+      if (darkMode) {
+        containerRef.current.classList.add('dark-mode');
+        containerRef.current.classList.remove('light-mode');
+      } else {
+        containerRef.current.classList.add('light-mode');
+        containerRef.current.classList.remove('dark-mode');
+      }
+    }
+  }, [darkMode]);
+
   return (
     <Paper 
       elevation={3} 

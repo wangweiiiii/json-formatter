@@ -9,11 +9,11 @@ import UndoIcon from '@mui/icons-material/Undo';
 const ControlPanel = ({ onFormat, onEscape, onUnescape, onClear, onCopy, darkMode }) => {
   // 根据暗黑模式设置按钮样式
   const buttonStyle = {
-    background: darkMode ? 'rgba(30, 30, 30, 0.6)' : 'rgba(255, 255, 255, 0.15)',
+    background: darkMode ? 'rgba(74, 59, 143, 0.6)' : 'rgba(91, 95, 199, 0.6)',
     backdropFilter: 'blur(10px)',
     boxShadow: darkMode ? '0 4px 12px rgba(0, 0, 0, 0.2)' : '0 4px 12px rgba(0, 0, 0, 0.1)',
     '&:hover': {
-      background: darkMode ? 'rgba(40, 40, 40, 0.7)' : 'rgba(255, 255, 255, 0.25)',
+      background: darkMode ? 'rgba(93, 74, 156, 0.7)' : 'rgba(58, 139, 216, 0.7)',
       transform: 'translateY(-2px)',
       boxShadow: darkMode ? '0 6px 16px rgba(0, 0, 0, 0.25)' : '0 6px 16px rgba(0, 0, 0, 0.15)',
     },
@@ -28,11 +28,11 @@ const ControlPanel = ({ onFormat, onEscape, onUnescape, onClear, onCopy, darkMod
 
   const outlinedButtonStyle = {
     ...buttonStyle,
-    background: darkMode ? 'rgba(30, 30, 30, 0.4)' : 'rgba(255, 255, 255, 0.1)',
-    border: darkMode ? '1px solid rgba(80, 80, 80, 0.5)' : '1px solid rgba(255, 255, 255, 0.3)',
+    background: darkMode ? 'rgba(45, 43, 110, 0.4)' : 'rgba(91, 95, 199, 0.3)',
+    border: darkMode ? '1px solid rgba(138, 101, 201, 0.5)' : '1px solid rgba(58, 139, 216, 0.5)',
     '&:hover': {
       ...buttonStyle['&:hover'],
-      border: darkMode ? '1px solid rgba(100, 100, 100, 0.7)' : '1px solid rgba(255, 255, 255, 0.5)',
+      border: darkMode ? '1px solid rgba(138, 101, 201, 0.7)' : '1px solid rgba(58, 139, 216, 0.7)',
     }
   };
 

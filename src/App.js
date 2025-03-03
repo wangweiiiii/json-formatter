@@ -47,6 +47,29 @@ function App() {
     document.documentElement.setAttribute('data-theme', darkMode ? 'dark' : 'light');
   }, [darkMode]);
 
+  // 确保暗黑模式状态在组件重新渲染时保持一致
+  useEffect(() => {
+    const checkAndUpdateTheme = () => {
+      const currentTheme = document.documentElement.getAttribute('data-theme');
+      const expectedTheme = darkMode ? 'dark' : 'light';
+      
+      if (currentTheme !== expectedTheme) {
+        document.documentElement.setAttribute('data-theme', expectedTheme);
+      }
+    };
+    
+    // 初始检查
+    checkAndUpdateTheme();
+    
+    // 添加事件监听器，在DOM变化时检查主题
+    const observer = new MutationObserver(checkAndUpdateTheme);
+    observer.observe(document.documentElement, { attributes: true });
+    
+    return () => {
+      observer.disconnect();
+    };
+  }, [darkMode]);
+
   // Load saved input from localStorage when component mounts
   useEffect(() => {
     const savedInput = localStorage.getItem('jsonFormatterInput');
@@ -72,6 +95,9 @@ function App() {
       const parsed = JSON.parse(input);
       setOutput(JSON.stringify(parsed, null, 2));
       setError('');
+      
+      // 确保在格式化后重新应用暗黑模式设置
+      document.documentElement.setAttribute('data-theme', darkMode ? 'dark' : 'light');
     } catch (err) {
       setError(`格式化错误: ${err.message}`);
     }
@@ -81,6 +107,9 @@ function App() {
     try {
       setOutput(JSON.stringify(input));
       setError('');
+      
+      // 确保在转义后重新应用暗黑模式设置
+      document.documentElement.setAttribute('data-theme', darkMode ? 'dark' : 'light');
     } catch (err) {
       setError(`转义错误: ${err.message}`);
     }
@@ -102,6 +131,9 @@ function App() {
       // 尝试解析转义后的字符串
       setOutput(JSON.parse(`"${processedInput}"`));
       setError('');
+      
+      // 确保在反转义后重新应用暗黑模式设置
+      document.documentElement.setAttribute('data-theme', darkMode ? 'dark' : 'light');
     } catch (err) {
       setError(`反转义错误: ${err.message}`);
     }
@@ -113,6 +145,9 @@ function App() {
     setError('');
     // Clear saved input from localStorage
     localStorage.removeItem('jsonFormatterInput');
+    
+    // 确保在清空后重新应用暗黑模式设置
+    document.documentElement.setAttribute('data-theme', darkMode ? 'dark' : 'light');
   };
 
   const handleCopy = () => {

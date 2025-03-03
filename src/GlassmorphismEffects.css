@@ -2,10 +2,10 @@
 
 /* CSS变量 - 主题颜色 */
 :root {
-  --bg-gradient-start: #5b5fc7;
-  --bg-gradient-end: #3a8bd8;
-  --bubble-color-1: #ff9966;
-  --bubble-color-2: #4da6ff;
+  --bg-gradient-start: #4a3b8f;
+  --bg-gradient-end: #2d2b6e;
+  --bubble-color-1: #8a65c9;
+  --bubble-color-2: #5d4a9c;
   --text-color: #ffffff;
   --text-color-secondary: rgba(255, 255, 255, 0.7);
   --border-color: rgba(255, 255, 255, 0.2);
@@ -19,10 +19,10 @@
 
 /* 白天模式变量 */
 [data-theme="light"] {
-  --bg-gradient-start: #e0e5ff;
-  --bg-gradient-end: #c5d8ff;
-  --bubble-color-1: #ffb380;
-  --bubble-color-2: #80b3ff;
+  --bg-gradient-start: #5b5fc7;
+  --bg-gradient-end: #3a8bd8;
+  --bubble-color-1: #6e9eff;
+  --bubble-color-2: #4d7eff;
   --text-color: #333333;
   --text-color-secondary: rgba(0, 0, 0, 0.7);
   --border-color: rgba(0, 0, 0, 0.1);

@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Paper, Box, Typography } from '@mui/material';
 
 const JsonEditor = ({ value, onChange, className, darkMode }) => {
+  const textareaRef = useRef(null);
+
   const handleKeyDown = (e) => {
     if (e.key === 'Tab') {
       e.preventDefault();
@@ -18,6 +20,13 @@ const JsonEditor = ({ value, onChange, className, darkMode }) => {
       }, 0);
     }
   };
+
+  // 确保暗黑模式变化时重新应用样式
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.color = darkMode ? 'white' : '#333';
+    }
+  }, [darkMode]);
 
   return (
     <Paper 
@@ -39,6 +48,7 @@ const JsonEditor = ({ value, onChange, className, darkMode }) => {
       </Box>
       <Box sx={{ flex: 1, overflow: 'hidden' }}>
         <textarea
+          ref={textareaRef}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           onKeyDown={handleKeyDown}
