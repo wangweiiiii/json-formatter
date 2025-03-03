@@ -161,6 +161,8 @@ const JsonVisualizer = ({ data, darkMode, className }) => {
         background: darkMode ? 'var(--glass-bg-color)' : 'var(--glass-bg-color)',
         backdropFilter: 'blur(15px)',
         WebkitBackdropFilter: 'blur(15px)',
+        borderTopLeftRadius: 0,
+        borderTopRightRadius: 0,
       }}
     >
       <Box 

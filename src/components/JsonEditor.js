@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { Paper, Box, Typography } from '@mui/material';
 
-const JsonEditor = ({ value, onChange, className, darkMode }) => {
+const JsonEditor = ({ value, onChange, className, darkMode, hideHeader = false }) => {
   const textareaRef = useRef(null);
 
   const handleKeyDown = (e) => {
@@ -42,21 +42,23 @@ const JsonEditor = ({ value, onChange, className, darkMode }) => {
         background: darkMode ? 'var(--glass-bg-color)' : 'var(--glass-bg-color)',
         backdropFilter: 'blur(15px)',
         WebkitBackdropFilter: 'blur(15px)',
+        borderTopLeftRadius: hideHeader ? 0 : undefined,
+        borderTopRightRadius: hideHeader ? 0 : undefined,
       }}
     >
-      <Box sx={{ p: 2, borderBottom: `1px solid ${darkMode ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.1)'}` }}>
-        <Typography variant="subtitle1" sx={{ fontWeight: 'medium', color: darkMode ? 'white' : '#333' }}>
-          输入
-        </Typography>
-      </Box>
-      <Box sx={{ flex: 1, overflow: 'hidden' }}>
+      {!hideHeader && (
+        <Box sx={{ p: 2, borderBottom: `1px solid ${darkMode ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.1)'}` }}>
+          <Typography variant="subtitle1" sx={{ fontWeight: 'medium', color: darkMode ? 'white' : '#333' }}>
+            输入
+          </Typography>
+        </Box>
+      )}
+      <Box sx={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
         <textarea
           ref={textareaRef}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="请输入 JSON 字符串..."
-          spellCheck="false"
           style={{
             width: '100%',
             height: '100%',
@@ -70,6 +72,8 @@ const JsonEditor = ({ value, onChange, className, darkMode }) => {
             color: darkMode ? 'white' : '#333',
             backgroundColor: 'transparent',
           }}
+          spellCheck="false"
+          placeholder="在此输入 JSON..."
         />
       </Box>
     </Paper>

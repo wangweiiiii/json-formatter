@@ -14,7 +14,7 @@ import JsonInlineEditor from './JsonInlineEditor';
 // Register JSON language
 SyntaxHighlighter.registerLanguage('json', json);
 
-const JsonViewer = ({ value, error, className, darkMode, onUpdate }) => {
+const JsonViewer = ({ value, error, className, darkMode, onUpdate, hideHeader = false }) => {
   const [collapsibleJson, setCollapsibleJson] = useState('');
   const [jsonData, setJsonData] = useState(null);
   const [jsonLines, setJsonLines] = useState([]);
@@ -515,47 +515,51 @@ const JsonViewer = ({ value, error, className, darkMode, onUpdate }) => {
         background: darkMode ? 'var(--glass-bg-color)' : 'var(--glass-bg-color)',
         backdropFilter: 'blur(15px)',
         WebkitBackdropFilter: 'blur(15px)',
+        borderTopLeftRadius: hideHeader ? 0 : undefined,
+        borderTopRightRadius: hideHeader ? 0 : undefined,
       }}
     >
-      <Box sx={{ 
-        p: 2, 
-        borderBottom: `1px solid ${darkMode ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.1)'}`,
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center'
-      }}>
-        <Typography variant="subtitle1" sx={{ fontWeight: 'medium', color: darkMode ? 'white' : '#333' }}>
-          输出
-        </Typography>
-        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-          <IconButton 
-            size="small" 
-            onClick={toggleExpandCollapse}
-            sx={{ 
-              color: darkMode ? 'white' : '#333',
-              backgroundColor: darkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)',
-              '&:hover': {
-                backgroundColor: darkMode ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.1)',
-              }
-            }}
-          >
-            {isAllExpanded ? <UnfoldLessIcon fontSize="small" /> : <UnfoldMoreIcon fontSize="small" />}
-          </IconButton>
-          <IconButton 
-            size="small" 
-            onClick={() => setWrapLines(!wrapLines)}
-            sx={{ 
-              color: darkMode ? 'white' : '#333',
-              backgroundColor: wrapLines ? (darkMode ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.1)') : (darkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)'),
-              '&:hover': {
-                backgroundColor: darkMode ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.1)',
-              }
-            }}
-          >
-            <WrapTextIcon fontSize="small" />
-          </IconButton>
+      {!hideHeader && (
+        <Box sx={{ 
+          p: 2, 
+          borderBottom: `1px solid ${darkMode ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.1)'}`,
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center'
+        }}>
+          <Typography variant="subtitle1" sx={{ fontWeight: 'medium', color: darkMode ? 'white' : '#333' }}>
+            输出
+          </Typography>
+          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+            <IconButton 
+              size="small" 
+              onClick={toggleExpandCollapse}
+              sx={{ 
+                color: darkMode ? 'white' : '#333',
+                backgroundColor: darkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)',
+                '&:hover': {
+                  backgroundColor: darkMode ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.1)',
+                }
+              }}
+            >
+              {isAllExpanded ? <UnfoldLessIcon fontSize="small" /> : <UnfoldMoreIcon fontSize="small" />}
+            </IconButton>
+            <IconButton 
+              size="small" 
+              onClick={() => setWrapLines(!wrapLines)}
+              sx={{ 
+                color: darkMode ? 'white' : '#333',
+                backgroundColor: wrapLines ? (darkMode ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.1)') : (darkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)'),
+                '&:hover': {
+                  backgroundColor: darkMode ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.1)',
+                }
+              }}
+            >
+              <WrapTextIcon fontSize="small" />
+            </IconButton>
+          </Box>
         </Box>
-      </Box>
+      )}
       
       {error && (
         <Alert severity="error" sx={{ m: 2, mb: 0 }}>

@@ -331,12 +331,33 @@ function App() {
           minHeight: 0,
           mb: 2
         }}>
-          <JsonEditor 
-            value={input} 
-            onChange={handleInputChange} 
-            className={`glassmorphism ${darkMode ? 'dark' : 'light'}`}
-            darkMode={darkMode}
-          />
+          <Box sx={{ 
+            flex: 1, 
+            display: 'flex', 
+            flexDirection: 'column',
+            overflow: 'hidden'
+          }}>
+            <Box sx={{ 
+              p: 2, 
+              borderBottom: `1px solid ${darkMode ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.1)'}`,
+              backgroundColor: darkMode ? 'var(--glass-bg-color)' : 'var(--glass-bg-color)',
+              backdropFilter: 'blur(15px)',
+              WebkitBackdropFilter: 'blur(15px)',
+              borderTopLeftRadius: '4px',
+              borderTopRightRadius: '4px',
+            }}>
+              <Typography variant="subtitle1" sx={{ fontWeight: 'medium', color: darkMode ? 'white' : '#333' }}>
+                输入
+              </Typography>
+            </Box>
+            <JsonEditor 
+              value={input} 
+              onChange={handleInputChange} 
+              className={`glassmorphism ${darkMode ? 'dark' : 'light'}`}
+              darkMode={darkMode}
+              hideHeader={true}
+            />
+          </Box>
           
           <Box sx={{ 
             flex: 1, 
@@ -344,27 +365,45 @@ function App() {
             flexDirection: 'column',
             overflow: 'hidden'
           }}>
-            <Tabs 
-              value={activeTab} 
-              onChange={handleTabChange}
-              sx={{ 
-                minHeight: '36px',
-                '& .MuiTab-root': {
-                  color: darkMode ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.7)',
-                  '&.Mui-selected': {
-                    color: darkMode ? 'white' : '#1976d2',
+            <Box sx={{ 
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              p: 2, 
+              borderBottom: `1px solid ${darkMode ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.1)'}`,
+              backgroundColor: darkMode ? 'var(--glass-bg-color)' : 'var(--glass-bg-color)',
+              backdropFilter: 'blur(15px)',
+              WebkitBackdropFilter: 'blur(15px)',
+              borderTopLeftRadius: '4px',
+              borderTopRightRadius: '4px',
+            }}>
+              <Typography variant="subtitle1" sx={{ fontWeight: 'medium', color: darkMode ? 'white' : '#333' }}>
+                输出
+              </Typography>
+              <Tabs 
+                value={activeTab} 
+                onChange={handleTabChange}
+                sx={{ 
+                  minHeight: '32px',
+                  '& .MuiTab-root': {
+                    color: darkMode ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.7)',
+                    '&.Mui-selected': {
+                      color: darkMode ? 'white' : '#1976d2',
+                    },
+                    minHeight: '32px',
+                    padding: '4px 12px',
+                    minWidth: '80px'
                   },
-                  minHeight: '36px',
-                  padding: '6px 12px'
-                },
-                '& .MuiTabs-indicator': {
-                  backgroundColor: darkMode ? 'white' : '#1976d2',
-                }
-              }}
-            >
-              <Tab label="JSON 视图" sx={{ fontSize: '0.875rem' }} />
-              <Tab label="可视化" sx={{ fontSize: '0.875rem' }} />
-            </Tabs>
+                  '& .MuiTabs-indicator': {
+                    backgroundColor: darkMode ? 'white' : '#1976d2',
+                    height: '2px'
+                  }
+                }}
+              >
+                <Tab label="JSON 视图" sx={{ fontSize: '0.8rem' }} />
+                <Tab label="可视化" sx={{ fontSize: '0.8rem' }} />
+              </Tabs>
+            </Box>
             
             <Box sx={{ flex: 1, display: activeTab === 0 ? 'flex' : 'none', overflow: 'hidden' }}>
               <JsonViewer 
@@ -373,6 +412,7 @@ function App() {
                 className={`glassmorphism ${darkMode ? 'dark' : 'light'}`}
                 darkMode={darkMode}
                 onUpdate={handleJsonUpdate}
+                hideHeader={true}
               />
             </Box>
             
