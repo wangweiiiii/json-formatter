@@ -6,7 +6,36 @@ import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import ClearAllIcon from '@mui/icons-material/ClearAll';
 import UndoIcon from '@mui/icons-material/Undo';
 
-const ControlPanel = ({ onFormat, onEscape, onUnescape, onClear, onCopy }) => {
+const ControlPanel = ({ onFormat, onEscape, onUnescape, onClear, onCopy, darkMode }) => {
+  // 根据暗黑模式设置按钮样式
+  const buttonStyle = {
+    background: darkMode ? 'rgba(30, 30, 30, 0.6)' : 'rgba(255, 255, 255, 0.15)',
+    backdropFilter: 'blur(10px)',
+    boxShadow: darkMode ? '0 4px 12px rgba(0, 0, 0, 0.2)' : '0 4px 12px rgba(0, 0, 0, 0.1)',
+    '&:hover': {
+      background: darkMode ? 'rgba(40, 40, 40, 0.7)' : 'rgba(255, 255, 255, 0.25)',
+      transform: 'translateY(-2px)',
+      boxShadow: darkMode ? '0 6px 16px rgba(0, 0, 0, 0.25)' : '0 6px 16px rgba(0, 0, 0, 0.15)',
+    },
+    fontWeight: 500,
+    letterSpacing: '0.5px',
+    padding: '8px 16px',
+    borderRadius: '12px',
+    textTransform: 'none',
+    fontSize: '0.95rem',
+    color: darkMode ? '#e0e0e0' : 'white'
+  };
+
+  const outlinedButtonStyle = {
+    ...buttonStyle,
+    background: darkMode ? 'rgba(30, 30, 30, 0.4)' : 'rgba(255, 255, 255, 0.1)',
+    border: darkMode ? '1px solid rgba(80, 80, 80, 0.5)' : '1px solid rgba(255, 255, 255, 0.3)',
+    '&:hover': {
+      ...buttonStyle['&:hover'],
+      border: darkMode ? '1px solid rgba(100, 100, 100, 0.7)' : '1px solid rgba(255, 255, 255, 0.5)',
+    }
+  };
+
   return (
     <Box sx={{ 
       display: 'flex', 
@@ -22,23 +51,7 @@ const ControlPanel = ({ onFormat, onEscape, onUnescape, onClear, onCopy }) => {
           startIcon={<FormatAlignLeftIcon />}
           onClick={onFormat}
           className="glassmorphism-button"
-          sx={{
-            background: 'rgba(255, 255, 255, 0.15)',
-            backdropFilter: 'blur(10px)',
-            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
-            '&:hover': {
-              background: 'rgba(255, 255, 255, 0.25)',
-              transform: 'translateY(-2px)',
-              boxShadow: '0 6px 16px rgba(0, 0, 0, 0.15)',
-            },
-            fontWeight: 500,
-            letterSpacing: '0.5px',
-            padding: '8px 16px',
-            borderRadius: '12px',
-            textTransform: 'none',
-            fontSize: '0.95rem',
-            color: 'white'
-          }}
+          sx={buttonStyle}
         >
           格式化
         </Button>
@@ -51,23 +64,7 @@ const ControlPanel = ({ onFormat, onEscape, onUnescape, onClear, onCopy }) => {
           startIcon={<CodeIcon />}
           onClick={onEscape}
           className="glassmorphism-button"
-          sx={{
-            background: 'rgba(255, 255, 255, 0.15)',
-            backdropFilter: 'blur(10px)',
-            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
-            '&:hover': {
-              background: 'rgba(255, 255, 255, 0.25)',
-              transform: 'translateY(-2px)',
-              boxShadow: '0 6px 16px rgba(0, 0, 0, 0.15)',
-            },
-            fontWeight: 500,
-            letterSpacing: '0.5px',
-            padding: '8px 16px',
-            borderRadius: '12px',
-            textTransform: 'none',
-            fontSize: '0.95rem',
-            color: 'white'
-          }}
+          sx={buttonStyle}
         >
           转义
         </Button>
@@ -80,23 +77,7 @@ const ControlPanel = ({ onFormat, onEscape, onUnescape, onClear, onCopy }) => {
           startIcon={<UndoIcon />}
           onClick={onUnescape}
           className="glassmorphism-button"
-          sx={{
-            background: 'rgba(255, 255, 255, 0.15)',
-            backdropFilter: 'blur(10px)',
-            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
-            '&:hover': {
-              background: 'rgba(255, 255, 255, 0.25)',
-              transform: 'translateY(-2px)',
-              boxShadow: '0 6px 16px rgba(0, 0, 0, 0.15)',
-            },
-            fontWeight: 500,
-            letterSpacing: '0.5px',
-            padding: '8px 16px',
-            borderRadius: '12px',
-            textTransform: 'none',
-            fontSize: '0.95rem',
-            color: 'white'
-          }}
+          sx={buttonStyle}
         >
           反转义
         </Button>
@@ -109,23 +90,7 @@ const ControlPanel = ({ onFormat, onEscape, onUnescape, onClear, onCopy }) => {
           startIcon={<ContentCopyIcon />}
           onClick={onCopy}
           className="glassmorphism-button"
-          sx={{
-            background: 'rgba(255, 255, 255, 0.15)',
-            backdropFilter: 'blur(10px)',
-            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
-            '&:hover': {
-              background: 'rgba(255, 255, 255, 0.25)',
-              transform: 'translateY(-2px)',
-              boxShadow: '0 6px 16px rgba(0, 0, 0, 0.15)',
-            },
-            fontWeight: 500,
-            letterSpacing: '0.5px',
-            padding: '8px 16px',
-            borderRadius: '12px',
-            textTransform: 'none',
-            fontSize: '0.95rem',
-            color: 'white'
-          }}
+          sx={buttonStyle}
         >
           复制结果
         </Button>
@@ -138,25 +103,7 @@ const ControlPanel = ({ onFormat, onEscape, onUnescape, onClear, onCopy }) => {
           startIcon={<ClearAllIcon />}
           onClick={onClear}
           className="glassmorphism-button"
-          sx={{
-            background: 'rgba(255, 255, 255, 0.1)',
-            backdropFilter: 'blur(10px)',
-            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
-            border: '1px solid rgba(255, 255, 255, 0.3)',
-            color: 'white',
-            '&:hover': {
-              background: 'rgba(255, 255, 255, 0.2)',
-              transform: 'translateY(-2px)',
-              boxShadow: '0 6px 16px rgba(0, 0, 0, 0.15)',
-              border: '1px solid rgba(255, 255, 255, 0.5)',
-            },
-            fontWeight: 500,
-            letterSpacing: '0.5px',
-            padding: '8px 16px',
-            borderRadius: '12px',
-            textTransform: 'none',
-            fontSize: '0.95rem'
-          }}
+          sx={outlinedButtonStyle}
         >
           清空
         </Button>

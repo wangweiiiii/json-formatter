@@ -1,7 +1,7 @@
 import React from 'react';
 import { Paper, Box, Typography } from '@mui/material';
 
-const JsonEditor = ({ value, onChange, className }) => {
+const JsonEditor = ({ value, onChange, className, darkMode }) => {
   const handleKeyDown = (e) => {
     if (e.key === 'Tab') {
       e.preventDefault();
@@ -28,12 +28,12 @@ const JsonEditor = ({ value, onChange, className }) => {
         display: 'flex', 
         flexDirection: 'column',
         overflow: 'hidden',
-        border: '1px solid rgba(255, 255, 255, 0.2)',
+        border: `1px solid ${darkMode ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.1)'}`,
         transition: 'all 0.3s ease',
       }}
     >
-      <Box sx={{ p: 2, borderBottom: '1px solid rgba(255, 255, 255, 0.2)' }}>
-        <Typography variant="subtitle1" sx={{ fontWeight: 'medium', color: 'white' }}>
+      <Box sx={{ p: 2, borderBottom: `1px solid ${darkMode ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.1)'}` }}>
+        <Typography variant="subtitle1" sx={{ fontWeight: 'medium', color: darkMode ? 'white' : '#333' }}>
           输入
         </Typography>
       </Box>
@@ -54,7 +54,7 @@ const JsonEditor = ({ value, onChange, className }) => {
             fontFamily: "'Roboto Mono', monospace",
             fontSize: '14px',
             lineHeight: '1.5',
-            color: 'white',
+            color: darkMode ? 'white' : '#333',
             backgroundColor: 'transparent',
           }}
         />

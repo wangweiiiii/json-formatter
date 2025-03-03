@@ -1,16 +1,21 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { Paper, Box, Typography, Alert } from '@mui/material';
+import { Paper, Box, Typography, Alert, IconButton } from '@mui/material';
 import { Light as SyntaxHighlighter } from 'react-syntax-highlighter';
 import json from 'react-syntax-highlighter/dist/esm/languages/hljs/json';
 import atomOneDark from 'react-syntax-highlighter/dist/esm/styles/hljs/atom-one-dark';
+import atomOneLight from 'react-syntax-highlighter/dist/esm/styles/hljs/atom-one-light';
+import UnfoldMoreIcon from '@mui/icons-material/UnfoldMore';
+import UnfoldLessIcon from '@mui/icons-material/UnfoldLess';
+import WrapTextIcon from '@mui/icons-material/WrapText';
 
 // Register JSON language
 SyntaxHighlighter.registerLanguage('json', json);
 
-const JsonViewer = ({ value, error, className }) => {
+const JsonViewer = ({ value, error, className, darkMode }) => {
   const [collapsibleJson, setCollapsibleJson] = useState('');
   const containerRef = useRef(null);
   const [wrapLines, setWrapLines] = useState(false);
+  const [isAllExpanded, setIsAllExpanded] = useState(true);
 
   // Format primitive values with proper styling
   const formatPrimitive = useCallback((value) => {
@@ -227,6 +232,9 @@ const JsonViewer = ({ value, error, className }) => {
     allLines.forEach(line => {
       line.classList.remove('hidden');
     });
+    
+    // 更新展开状态
+    setIsAllExpanded(true);
   };
 
   // Collapse all sections
@@ -273,6 +281,18 @@ const JsonViewer = ({ value, error, className }) => {
         }
       }
     });
+    
+    // 更新展开状态
+    setIsAllExpanded(false);
+  };
+  
+  // 切换展开/折叠状态
+  const toggleExpandCollapse = () => {
+    if (isAllExpanded) {
+      collapseAll();
+    } else {
+      expandAll();
+    }
   };
 
   useEffect(() => {
@@ -307,57 +327,47 @@ const JsonViewer = ({ value, error, className }) => {
         display: 'flex', 
         flexDirection: 'column',
         overflow: 'hidden',
-        border: '1px solid rgba(255, 255, 255, 0.2)',
+        border: `1px solid ${darkMode ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.1)'}`,
         transition: 'all 0.3s ease',
       }}
     >
       <Box sx={{ 
         p: 2, 
-        borderBottom: '1px solid rgba(255, 255, 255, 0.2)',
+        borderBottom: `1px solid ${darkMode ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.1)'}`,
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center'
       }}>
-        <Typography variant="subtitle1" sx={{ fontWeight: 'medium', color: 'white' }}>
+        <Typography variant="subtitle1" sx={{ fontWeight: 'medium', color: darkMode ? 'white' : '#333' }}>
           输出
         </Typography>
-        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-          <Typography 
-            variant="caption" 
+        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+          <IconButton 
+            size="small" 
+            onClick={toggleExpandCollapse}
             sx={{ 
-              cursor: 'pointer', 
-              color: 'white',
-              fontWeight: 'medium',
-              '&:hover': { textDecoration: 'underline' }
+              color: darkMode ? 'white' : '#333',
+              backgroundColor: darkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)',
+              '&:hover': {
+                backgroundColor: darkMode ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.1)',
+              }
             }}
-            onClick={expandAll}
           >
-            展开全部
-          </Typography>
-          <Typography 
-            variant="caption" 
-            sx={{ 
-              cursor: 'pointer', 
-              color: 'white',
-              fontWeight: 'medium',
-              '&:hover': { textDecoration: 'underline' }
-            }}
-            onClick={collapseAll}
-          >
-            折叠全部
-          </Typography>
-          <Typography 
-            variant="caption" 
-            sx={{ 
-              cursor: 'pointer', 
-              color: 'white',
-              fontWeight: 'medium',
-              '&:hover': { textDecoration: 'underline' }
-            }}
+            {isAllExpanded ? <UnfoldLessIcon fontSize="small" /> : <UnfoldMoreIcon fontSize="small" />}
+          </IconButton>
+          <IconButton 
+            size="small" 
             onClick={() => setWrapLines(!wrapLines)}
+            sx={{ 
+              color: darkMode ? 'white' : '#333',
+              backgroundColor: wrapLines ? (darkMode ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.1)') : (darkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)'),
+              '&:hover': {
+                backgroundColor: darkMode ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.1)',
+              }
+            }}
           >
-            {wrapLines ? '禁用换行' : '启用换行'}
-          </Typography>
+            <WrapTextIcon fontSize="small" />
+          </IconButton>
         </Box>
       </Box>
       
@@ -378,14 +388,14 @@ const JsonViewer = ({ value, error, className }) => {
             fontFamily: "'Roboto Mono', monospace",
             fontSize: '14px',
             lineHeight: '1.5',
-            color: 'white',
+            color: darkMode ? 'white' : '#333',
           },
           '& .json-line': {
             display: 'flex',
             alignItems: 'flex-start',
           },
           '& .line-number': {
-            color: 'rgba(255, 255, 255, 0.5)',
+            color: darkMode ? 'rgba(255, 255, 255, 0.5)' : 'rgba(0, 0, 0, 0.4)',
             textAlign: 'right',
             paddingRight: '16px',
             userSelect: 'none',
@@ -402,7 +412,7 @@ const JsonViewer = ({ value, error, className }) => {
             flexShrink: 0,
           },
           '& .toggle-arrow': {
-            color: 'white',
+            color: darkMode ? 'white' : '#333',
             fontSize: '10px',
             cursor: 'pointer',
             flexShrink: 0,
@@ -415,37 +425,37 @@ const JsonViewer = ({ value, error, className }) => {
             whiteSpace: wrapLines ? 'pre-wrap' : 'pre',
             wordBreak: wrapLines ? 'break-word' : 'normal',
             overflowWrap: wrapLines ? 'break-word' : 'normal',
-            color: 'white',
+            color: darkMode ? 'white' : '#333',
           },
           '& .json-comma': {
-            color: 'rgba(255, 255, 255, 0.7)',
+            color: darkMode ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.7)',
           },
           '& .json-colon': {
-            color: 'rgba(255, 255, 255, 0.7)',
+            color: darkMode ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.7)',
           },
           '& .json-key': {
-            color: '#ff9966',
+            color: darkMode ? '#ff9966' : '#e07c4c',
           },
           '& .json-string': {
-            color: '#98c379',
+            color: darkMode ? '#98c379' : '#50a14f',
           },
           '& .json-number': {
-            color: '#d19a66',
+            color: darkMode ? '#d19a66' : '#c18401',
           },
           '& .json-boolean': {
-            color: '#56b6c2',
+            color: darkMode ? '#56b6c2' : '#0184bc',
           },
           '& .json-null': {
-            color: '#56b6c2',
+            color: darkMode ? '#56b6c2' : '#0184bc',
           },
           '& .json-bracket': {
-            color: 'rgba(255, 255, 255, 0.7)',
+            color: darkMode ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.7)',
           },
           '& .arrow': {
             cursor: 'pointer',
             userSelect: 'none',
             marginRight: '5px',
-            color: 'white',
+            color: darkMode ? 'white' : '#333',
             transition: 'transform 0.2s ease',
             transform: 'rotate(90deg)',
             display: 'inline-block',
@@ -463,19 +473,13 @@ const JsonViewer = ({ value, error, className }) => {
         ) : (
           <SyntaxHighlighter 
             language="json" 
-            style={{
-              ...atomOneDark,
-              'hljs': {
-                ...atomOneDark.hljs,
-                color: 'white',
-              }
-            }}
+            style={darkMode ? atomOneDark : atomOneLight}
             customStyle={{
               margin: 0,
               padding: '16px',
               backgroundColor: 'transparent',
               height: '100%',
-              color: 'white',
+              color: darkMode ? 'white' : '#333',
             }}
             showLineNumbers
             wrapLines={wrapLines}
@@ -483,7 +487,7 @@ const JsonViewer = ({ value, error, className }) => {
             lineNumberStyle={{
               textAlign: 'right',
               paddingRight: '16px',
-              color: 'rgba(255, 255, 255, 0.5)',
+              color: darkMode ? 'rgba(255, 255, 255, 0.5)' : 'rgba(0, 0, 0, 0.4)',
             }}
           >
             {value || ''}
