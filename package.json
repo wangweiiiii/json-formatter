@@ -2,7 +2,7 @@
   "name": "json-formatter",
   "version": "0.1.0",
   "private": true,
-  "homepage": "https://[你的GitHub用户名].github.io/json-formatter",
+  "homepage": "https://yourusername.github.io/json-formatter",
   "dependencies": {
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
