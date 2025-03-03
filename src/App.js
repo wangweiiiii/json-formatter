@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Container, Typography, useTheme, IconButton, createTheme, ThemeProvider } from '@mui/material';
+import { Box, Container, Typography, IconButton, createTheme, ThemeProvider, Tabs, Tab } from '@mui/material';
 import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
 import JsonEditor from './components/JsonEditor';
 import JsonViewer from './components/JsonViewer';
 import ControlPanel from './components/ControlPanel';
+import FormatOptions from './components/FormatOptions';
+import JsonVisualizer from './components/JsonVisualizer';
 import './GlassmorphismEffects.css'; // 引入毛玻璃效果样式
 
 function App() {
@@ -16,6 +18,10 @@ function App() {
     const savedMode = localStorage.getItem('jsonFormatterDarkMode');
     return savedMode !== null ? JSON.parse(savedMode) : true;
   });
+  const [indentSize, setIndentSize] = useState(2);
+  const [sortKeys, setSortKeys] = useState(false);
+  const [validateSchema, setValidateSchema] = useState(false);
+  const [activeTab, setActiveTab] = useState(0);
 
   // 创建主题
   const theme = createTheme({
@@ -85,6 +91,22 @@ function App() {
     if (savedInput) {
       setInput(savedInput);
     }
+    
+    // 加载保存的格式化选项
+    const savedIndentSize = localStorage.getItem('jsonFormatterIndentSize');
+    if (savedIndentSize) {
+      setIndentSize(parseInt(savedIndentSize));
+    }
+    
+    const savedSortKeys = localStorage.getItem('jsonFormatterSortKeys');
+    if (savedSortKeys) {
+      setSortKeys(JSON.parse(savedSortKeys));
+    }
+    
+    const savedValidateSchema = localStorage.getItem('jsonFormatterValidateSchema');
+    if (savedValidateSchema) {
+      setValidateSchema(JSON.parse(savedValidateSchema));
+    }
   }, []);
 
   const handleInputChange = (value) => {
@@ -94,6 +116,65 @@ function App() {
     localStorage.setItem('jsonFormatterInput', value);
   };
 
+  // 处理格式化选项变更
+  const handleIndentSizeChange = (size) => {
+    setIndentSize(size);
+    localStorage.setItem('jsonFormatterIndentSize', size);
+    // 如果已经有输出，重新格式化
+    if (output) {
+      try {
+        const parsed = JSON.parse(output);
+        setOutput(JSON.stringify(parsed, null, size));
+      } catch (err) {
+        // 忽略错误
+      }
+    }
+  };
+
+  const handleSortKeysChange = (sort) => {
+    setSortKeys(sort);
+    localStorage.setItem('jsonFormatterSortKeys', JSON.stringify(sort));
+    // 如果已经有输出，重新格式化
+    if (output) {
+      try {
+        const parsed = JSON.parse(output);
+        if (sort) {
+          // 排序键
+          const sortedOutput = sortJsonKeys(parsed);
+          setOutput(JSON.stringify(sortedOutput, null, indentSize));
+        } else {
+          // 不排序，保持原样
+          setOutput(JSON.stringify(parsed, null, indentSize));
+        }
+      } catch (err) {
+        // 忽略错误
+      }
+    }
+  };
+
+  const handleValidateSchemaChange = (validate) => {
+    setValidateSchema(validate);
+    localStorage.setItem('jsonFormatterValidateSchema', JSON.stringify(validate));
+  };
+
+  // 递归排序JSON对象的键
+  const sortJsonKeys = (obj) => {
+    if (obj === null || typeof obj !== 'object') {
+      return obj;
+    }
+    
+    if (Array.isArray(obj)) {
+      return obj.map(sortJsonKeys);
+    }
+    
+    return Object.keys(obj)
+      .sort()
+      .reduce((result, key) => {
+        result[key] = sortJsonKeys(obj[key]);
+        return result;
+      }, {});
+  };
+
   const handleFormat = () => {
     try {
       if (!input.trim()) {
@@ -101,8 +182,15 @@ function App() {
         return;
       }
       
-      const parsed = JSON.parse(input);
-      setOutput(JSON.stringify(parsed, null, 2));
+      let parsed = JSON.parse(input);
+      
+      // 如果启用了键排序
+      if (sortKeys) {
+        parsed = sortJsonKeys(parsed);
+      }
+      
+      // 使用设置的缩进大小
+      setOutput(JSON.stringify(parsed, null, indentSize));
       setError('');
       
       // 确保在格式化后重新应用暗黑模式设置
@@ -163,6 +251,16 @@ function App() {
     navigator.clipboard.writeText(output);
   };
 
+  // 处理JSON更新（从内联编辑器）
+  const handleJsonUpdate = (newValue) => {
+    setOutput(newValue);
+  };
+
+  // 处理标签页切换
+  const handleTabChange = (event, newValue) => {
+    setActiveTab(newValue);
+  };
+
   return (
     <ThemeProvider theme={theme}>
       {/* 动态背景 */}
@@ -191,19 +289,30 @@ function App() {
             JSON 格式化工具
           </Typography>
           
-          <IconButton 
-            onClick={toggleDarkMode} 
-            color="inherit"
-            sx={{ 
-              ml: 2,
-              backgroundColor: darkMode ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.08)',
-              '&:hover': {
-                backgroundColor: darkMode ? 'rgba(255, 255, 255, 0.25)' : 'rgba(0, 0, 0, 0.15)',
-              }
-            }}
-          >
-            {darkMode ? <Brightness7Icon /> : <Brightness4Icon />}
-          </IconButton>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <FormatOptions 
+              indentSize={indentSize}
+              setIndentSize={handleIndentSizeChange}
+              sortKeys={sortKeys}
+              setSortKeys={handleSortKeysChange}
+              validateSchema={validateSchema}
+              setValidateSchema={handleValidateSchemaChange}
+              darkMode={darkMode}
+            />
+            
+            <IconButton 
+              onClick={toggleDarkMode} 
+              color="inherit"
+              sx={{ 
+                backgroundColor: darkMode ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.08)',
+                '&:hover': {
+                  backgroundColor: darkMode ? 'rgba(255, 255, 255, 0.25)' : 'rgba(0, 0, 0, 0.15)',
+                }
+              }}
+            >
+              {darkMode ? <Brightness7Icon /> : <Brightness4Icon />}
+            </IconButton>
+          </Box>
         </Box>
         
         <ControlPanel 
@@ -228,12 +337,51 @@ function App() {
             className={`glassmorphism ${darkMode ? 'dark' : 'light'}`}
             darkMode={darkMode}
           />
-          <JsonViewer 
-            value={output} 
-            error={error}
-            className={`glassmorphism ${darkMode ? 'dark' : 'light'}`}
-            darkMode={darkMode}
-          />
+          
+          <Box sx={{ 
+            flex: 1, 
+            display: 'flex', 
+            flexDirection: 'column',
+            overflow: 'hidden'
+          }}>
+            <Tabs 
+              value={activeTab} 
+              onChange={handleTabChange}
+              sx={{ 
+                mb: 1,
+                '& .MuiTab-root': {
+                  color: darkMode ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.7)',
+                  '&.Mui-selected': {
+                    color: darkMode ? 'white' : '#1976d2',
+                  }
+                },
+                '& .MuiTabs-indicator': {
+                  backgroundColor: darkMode ? 'white' : '#1976d2',
+                }
+              }}
+            >
+              <Tab label="JSON 视图" />
+              <Tab label="可视化" />
+            </Tabs>
+            
+            <Box sx={{ flex: 1, display: activeTab === 0 ? 'flex' : 'none' }}>
+              <JsonViewer 
+                value={output} 
+                error={error}
+                className={`glassmorphism ${darkMode ? 'dark' : 'light'}`}
+                darkMode={darkMode}
+                onUpdate={handleJsonUpdate}
+              />
+            </Box>
+            
+            <Box sx={{ flex: 1, display: activeTab === 1 ? 'flex' : 'none' }}>
+              <JsonVisualizer 
+                data={output}
+                darkMode={darkMode}
+                className={`glassmorphism ${darkMode ? 'dark' : 'light'}`}
+              />
+            </Box>
+          </Box>
         </Box>
       </Container>
     </ThemeProvider>
