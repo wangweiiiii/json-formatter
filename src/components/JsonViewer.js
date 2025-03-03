@@ -118,7 +118,7 @@ const JsonViewer = ({ value, error, className, darkMode }) => {
     lines.forEach((line, index) => {
       const indent = line.level * 20; // 20px per indent level
       const arrowHtml = line.isCollapsible 
-        ? `<span class="arrow" data-path="${line.path}" style="display: inline-block; width: 16px; text-align: center;">▶</span>` 
+        ? `<span class="arrow" data-path="${line.path}" style="display: inline-block; width: 16px; text-align: center; cursor: pointer;">▶</span>` 
         : '<span class="arrow-placeholder" style="display: inline-block; width: 16px;"></span>';
       
       // 确定是否应该隐藏这一行
@@ -218,7 +218,7 @@ const JsonViewer = ({ value, error, className, darkMode }) => {
   }, []);
 
   // Expand all sections
-  const expandAll = () => {
+  const expandAll = useCallback(() => {
     if (!containerRef.current) return;
     
     // Reset all arrows to expanded state
@@ -235,10 +235,15 @@ const JsonViewer = ({ value, error, className, darkMode }) => {
     
     // 更新展开状态
     setIsAllExpanded(true);
-  };
+    
+    // 重新绑定事件监听器
+    setTimeout(() => {
+      setupCollapsible();
+    }, 0);
+  }, [setupCollapsible]);
 
   // Collapse all sections
-  const collapseAll = () => {
+  const collapseAll = useCallback(() => {
     if (!containerRef.current) return;
     
     // Get all collapsible lines
@@ -284,16 +289,21 @@ const JsonViewer = ({ value, error, className, darkMode }) => {
     
     // 更新展开状态
     setIsAllExpanded(false);
-  };
+    
+    // 重新绑定事件监听器
+    setTimeout(() => {
+      setupCollapsible();
+    }, 0);
+  }, [setupCollapsible]);
   
   // 切换展开/折叠状态
-  const toggleExpandCollapse = () => {
+  const toggleExpandCollapse = useCallback(() => {
     if (isAllExpanded) {
       collapseAll();
     } else {
       expandAll();
     }
-  };
+  }, [isAllExpanded, collapseAll, expandAll]);
 
   useEffect(() => {
     if (!value) {
@@ -311,12 +321,16 @@ const JsonViewer = ({ value, error, className, darkMode }) => {
       // Setup collapsible functionality after a small delay
       setTimeout(() => {
         setupCollapsible();
-      }, 0);
+        // 如果之前是折叠状态，重新应用折叠
+        if (!isAllExpanded) {
+          collapseAll();
+        }
+      }, 10);
     } catch (err) {
       // If parsing fails, display as is
       setCollapsibleJson(value);
     }
-  }, [value, generateFlatJson, buildJsonHtml, setupCollapsible]);
+  }, [value, generateFlatJson, buildJsonHtml, setupCollapsible, collapseAll, isAllExpanded]);
 
   // 确保暗黑模式变化时重新应用样式
   useEffect(() => {
@@ -339,14 +353,32 @@ const JsonViewer = ({ value, error, className, darkMode }) => {
             const lines = generateFlatJson(parsed);
             const html = buildJsonHtml(lines);
             setCollapsibleJson(html);
+            
+            // 在重新渲染后设置折叠状态
+            setTimeout(() => {
+              setupCollapsible();
+              // 如果之前是折叠状态，重新应用折叠
+              if (!isAllExpanded) {
+                collapseAll();
+              }
+            }, 10);
           } catch (err) {
             // 如果解析失败，保持原样显示
             setCollapsibleJson(value);
           }
         }
+      } else {
+        // 如果已经有内容，只需重新应用折叠状态
+        setTimeout(() => {
+          setupCollapsible();
+          // 如果之前是折叠状态，重新应用折叠
+          if (!isAllExpanded) {
+            collapseAll();
+          }
+        }, 10);
       }
     }
-  }, [darkMode, value, generateFlatJson, buildJsonHtml, collapsibleJson]);
+  }, [darkMode, value, generateFlatJson, buildJsonHtml, collapsibleJson, setupCollapsible, collapseAll, isAllExpanded]);
 
   return (
     <Paper 
@@ -494,6 +526,15 @@ const JsonViewer = ({ value, error, className, darkMode }) => {
             transition: 'transform 0.2s ease',
             transform: 'rotate(90deg)',
             display: 'inline-block',
+            width: '16px',
+            height: '16px',
+            textAlign: 'center',
+            lineHeight: '16px',
+            fontSize: '12px',
+            borderRadius: '2px',
+            '&:hover': {
+              backgroundColor: darkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)',
+            }
           },
           '& .arrow.collapsed': {
             transform: 'rotate(0deg)',
