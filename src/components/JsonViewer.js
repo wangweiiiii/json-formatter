@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
-import { Paper, Box, Typography, Alert, IconButton, Divider } from '@mui/material';
+import { Paper, Box, Typography, Alert, IconButton, Divider, Button } from '@mui/material';
 import { Light as SyntaxHighlighter } from 'react-syntax-highlighter';
 import json from 'react-syntax-highlighter/dist/esm/languages/hljs/json';
 import atomOneDark from 'react-syntax-highlighter/dist/esm/styles/hljs/atom-one-dark';
@@ -15,7 +15,6 @@ import JsonInlineEditor from './JsonInlineEditor';
 SyntaxHighlighter.registerLanguage('json', json);
 
 const JsonViewer = ({ value, error, className, darkMode, onUpdate, hideHeader = false }) => {
-  const [collapsibleJson, setCollapsibleJson] = useState('');
   const [jsonData, setJsonData] = useState(null);
   const [jsonLines, setJsonLines] = useState([]);
   const containerRef = useRef(null);
@@ -42,99 +41,131 @@ const JsonViewer = ({ value, error, className, darkMode, onUpdate, hideHeader = 
     return JSON.stringify(value);
   }, []);
 
-  // Generate a flat structure with proper indentation
-  const generateFlatJson = useCallback((obj) => {
+  // 生成扁平化的JSON结构
+  const generateFlatJson = useCallback((jsonObj) => {
     const lines = [];
+    let lineIndex = 0;
     
-    const processValue = (value, path, level, isLast, keyName = null, parentType = null) => {
-      if (Array.isArray(value)) {
-        // Array opening
+    const processValue = (value, path = 'root', level = 0, isLast = true, keyName = null) => {
+      if (value === null) {
+        // 处理null值
+        const content = keyName ? `"${keyName}": null${isLast ? '' : ','}` : `null${isLast ? '' : ','}`;
         lines.push({
-          content: keyName !== null 
-            ? `<span class="json-key">"${keyName}"</span><span class="json-colon">: </span><span class="json-bracket">[</span>` 
-            : '<span class="json-bracket">[</span>',
+          content,
           level,
-          isCollapsible: value.length > 0,
           path,
-          isOpenBracket: true,
-          bracketType: '[',
-          value: value,
-          keyName,
-          parentType
-        });
-        
-        // Array items
-        value.forEach((item, index) => {
-          const itemPath = `${path}.${index}`;
-          const isLastItem = index === value.length - 1;
-          processValue(item, itemPath, level + 1, isLastItem, null, 'array');
-        });
-        
-        // Array closing
-        lines.push({
-          content: `<span class="json-bracket">]</span>${isLast ? '' : '<span class="json-comma">,</span>'}`,
-          level,
           isCollapsible: false,
-          path: `${path}.close`,
-          isCloseBracket: true,
-          bracketType: ']',
-          value: value,
-          keyName,
-          parentType
+          isCollapsed: false,
+          lineIndex: lineIndex++
         });
-      } else if (typeof value === 'object' && value !== null) {
-        // Object opening
-        lines.push({
-          content: keyName !== null 
-            ? `<span class="json-key">"${keyName}"</span><span class="json-colon">: </span><span class="json-bracket">{</span>` 
-            : '<span class="json-bracket">{</span>',
-          level,
-          isCollapsible: Object.keys(value).length > 0,
-          path,
-          isOpenBracket: true,
-          bracketType: '{',
-          value: value,
-          keyName,
-          parentType
-        });
-        
-        // Object properties
+      } else if (typeof value === 'object' && !Array.isArray(value)) {
+        // 处理对象
         const keys = Object.keys(value);
-        keys.forEach((key, index) => {
-          const propPath = `${path}.${key}`;
-          const isLastProp = index === keys.length - 1;
-          processValue(value[key], propPath, level + 1, isLastProp, key, 'object');
+        
+        // 添加开括号行
+        const openContent = keyName ? `"${keyName}": {${keys.length === 0 ? '}' + (isLast ? '' : ',') : ''}` : '{';
+        const openPath = path;
+        lines.push({
+          content: openContent,
+          level,
+          path: openPath,
+          isCollapsible: keys.length > 0,
+          isCollapsed: false,
+          isOpenBracket: keys.length > 0,
+          bracketType: '{',
+          lineIndex: lineIndex++
         });
         
-        // Object closing
+        // 如果对象为空，不需要添加闭括号行
+        if (keys.length === 0 && !keyName) {
+          lines[lines.length - 1].content += isLast ? '' : ',';
+          return;
+        }
+        
+        // 如果对象为空且有键名，已经在开括号行添加了闭括号
+        if (keys.length === 0 && keyName) {
+          return;
+        }
+        
+        // 处理对象的每个属性
+        keys.forEach((key, index) => {
+          const isLastProperty = index === keys.length - 1;
+          processValue(value[key], `${path}.${key}`, level + 1, isLastProperty, key);
+        });
+        
+        // 添加闭括号行
+        const closeContent = `}${isLast ? '' : ','}`;
         lines.push({
-          content: `<span class="json-bracket">}</span>${isLast ? '' : '<span class="json-comma">,</span>'}`,
+          content: closeContent,
           level,
+          path: openPath,
           isCollapsible: false,
-          path: `${path}.close`,
+          isCollapsed: false,
           isCloseBracket: true,
           bracketType: '}',
-          value: value,
-          keyName,
-          parentType
+          lineIndex: lineIndex++
+        });
+      } else if (Array.isArray(value)) {
+        // 处理数组
+        // 添加开括号行
+        const openContent = keyName ? `"${keyName}": [${value.length === 0 ? ']' + (isLast ? '' : ',') : ''}` : '[';
+        const openPath = path;
+        lines.push({
+          content: openContent,
+          level,
+          path: openPath,
+          isCollapsible: value.length > 0,
+          isCollapsed: false,
+          isOpenBracket: value.length > 0,
+          bracketType: '[',
+          lineIndex: lineIndex++
+        });
+        
+        // 如果数组为空，不需要添加闭括号行
+        if (value.length === 0 && !keyName) {
+          lines[lines.length - 1].content += isLast ? '' : ',';
+          return;
+        }
+        
+        // 如果数组为空且有键名，已经在开括号行添加了闭括号
+        if (value.length === 0 && keyName) {
+          return;
+        }
+        
+        // 处理数组的每个元素
+        value.forEach((item, index) => {
+          const isLastItem = index === value.length - 1;
+          processValue(item, `${path}[${index}]`, level + 1, isLastItem);
+        });
+        
+        // 添加闭括号行
+        const closeContent = `]${isLast ? '' : ','}`;
+        lines.push({
+          content: closeContent,
+          level,
+          path: openPath,
+          isCollapsible: false,
+          isCollapsed: false,
+          isCloseBracket: true,
+          bracketType: ']',
+          lineIndex: lineIndex++
         });
       } else {
-        // Primitive value
+        // 处理基本类型值
+        let formattedValue = formatPrimitive(value);
+        const content = keyName ? `"${keyName}": ${formattedValue}${isLast ? '' : ','}` : `${formattedValue}${isLast ? '' : ','}`;
         lines.push({
-          content: keyName !== null 
-            ? `<span class="json-key">"${keyName}"</span><span class="json-colon">: </span>${formatPrimitive(value)}${isLast ? '' : '<span class="json-comma">,</span>'}` 
-            : `${formatPrimitive(value)}${isLast ? '' : '<span class="json-comma">,</span>'}`,
+          content,
           level,
-          isCollapsible: false,
           path,
-          value,
-          keyName,
-          parentType
+          isCollapsible: false,
+          isCollapsed: false,
+          lineIndex: lineIndex++
         });
       }
     };
     
-    processValue(obj, 'root', 0, true);
+    processValue(jsonObj);
     return lines;
   }, [formatPrimitive]);
 
@@ -246,105 +277,274 @@ const JsonViewer = ({ value, error, className, darkMode, onUpdate, hideHeader = 
     onUpdate(JSON.stringify(newData, null, 2));
   }, [jsonData, onUpdate]);
 
-  // 渲染单个JSON行
-  const renderJsonLine = useCallback((line, index) => {
-    const indent = line.level * 20; // 20px per indent level
-    const arrowHtml = line.isCollapsible 
-      ? `<span class="arrow" data-path="${line.path}" style="display: inline-block; width: 16px; text-align: center; cursor: pointer;">▶</span>` 
-      : '<span class="arrow-placeholder" style="display: inline-block; width: 16px;"></span>';
-    
-    return (
-      <div 
-        className={`json-line ${line.path === selectedNodePath ? 'selected' : ''}`} 
-        data-line={index + 1} 
-        data-path={line.path} 
-        data-level={line.level}
-        data-bracket-open={line.isOpenBracket ? line.bracketType : undefined}
-        data-bracket-close={line.isCloseBracket ? line.bracketType : undefined}
-        onClick={(e) => handleNodeSelect(line, e)}
-        style={{ cursor: 'pointer' }}
-      >
-        <div className="line-number">{index + 1}</div>
-        <div className="line-content">
-          <div 
-            className="arrow-container" 
-            dangerouslySetInnerHTML={{ __html: line.isCollapsible ? arrowHtml : '<span class="arrow-placeholder" style="display: inline-block; width: 16px;"></span>' }}
-          />
-          <div className="content" style={{ paddingLeft: `${indent}px` }} dangerouslySetInnerHTML={{ __html: line.content }} />
-        </div>
-      </div>
-    );
-  }, [selectedNodePath]);
-
-  // 展开所有节点
-  const expandAll = useCallback(() => {
+  // 处理折叠/展开
+  const handleCollapse = useCallback((arrow, line) => {
     if (!containerRef.current) return;
     
-    // 重置所有箭头为展开状态
-    const arrows = containerRef.current.querySelectorAll('.arrow');
-    arrows.forEach(arrow => {
-      arrow.classList.remove('collapsed');
-    });
+    // 获取当前行和相关信息
+    const lineElement = arrow.closest('.json-line');
+    if (!lineElement) return;
     
-    // 显示所有行
-    const allLines = containerRef.current.querySelectorAll('.json-line');
-    allLines.forEach(line => {
-      line.classList.remove('hidden');
-    });
+    // 获取当前折叠状态 - 直接从line对象获取
+    const isCollapsed = line.isCollapsed;
     
-    // 更新展开状态
-    setIsAllExpanded(true);
-  }, []);
-
-  // 折叠所有节点
-  const collapseAll = useCallback(() => {
-    if (!containerRef.current) return;
-    
-    // 获取所有可折叠行
-    const collapsibleLines = containerRef.current.querySelectorAll('.json-line[data-bracket-open]');
-    
-    collapsibleLines.forEach(line => {
-      const arrow = line.querySelector('.arrow');
-      if (arrow) {
-        // 设置箭头为折叠状态
-        arrow.classList.add('collapsed');
-        
-        // 获取括号类型和层级
-        const bracketType = line.getAttribute('data-bracket-open');
-        const closingBracket = bracketType === '{' ? '}' : ']';
-        const startLevel = parseInt(line.getAttribute('data-level'));
-        
-        // 查找并隐藏所有嵌套行
-        let currentLine = line.nextElementSibling;
-        let foundClosing = false;
-        
-        while (currentLine && !foundClosing) {
-          const currentLevel = parseInt(currentLine.getAttribute('data-level'));
-          const isClosingBracket = currentLine.hasAttribute('data-bracket-close') && 
-                                  currentLine.getAttribute('data-bracket-close') === closingBracket &&
-                                  currentLevel === startLevel;
-          
-          if (isClosingBracket) {
-            // 找到闭合括号
-            foundClosing = true;
-            currentLine.classList.add('hidden');
-          } else if (currentLevel > startLevel) {
-            // 这是嵌套行，隐藏它
-            currentLine.classList.add('hidden');
-          } else {
-            // 同级或更高级别，停止隐藏
-            break;
-          }
-          
-          currentLine = currentLine.nextElementSibling;
+    // 更新 jsonLines 中对应行的 isCollapsed 状态
+    setJsonLines(prevLines => {
+      // 创建一个新的数组，更新指定行的折叠状态
+      const newLines = prevLines.map(l => {
+        if (l.path === line.path) {
+          return { ...l, isCollapsed: !isCollapsed };
         }
-      }
+        return l;
+      });
+      
+      // 强制重新渲染所有行
+      setTimeout(() => {
+        // 在状态更新后，手动更新DOM
+        if (containerRef.current) {
+          const allLines = containerRef.current.querySelectorAll('.json-line');
+          const allArrows = containerRef.current.querySelectorAll('.arrow');
+          
+          // 更新所有行的可见性
+          allLines.forEach(lineEl => {
+            const path = lineEl.getAttribute('data-path');
+            const matchingLine = newLines.find(l => l.path === path);
+            
+            if (matchingLine) {
+              // 如果是折叠状态且是嵌套行，则隐藏
+              const shouldBeHidden = isParentCollapsed(matchingLine.path, newLines);
+              if (shouldBeHidden) {
+                lineEl.classList.add('hidden');
+              } else {
+                lineEl.classList.remove('hidden');
+              }
+            }
+          });
+          
+          // 更新所有箭头的旋转状态
+          allArrows.forEach(arrowEl => {
+            const path = arrowEl.getAttribute('data-path');
+            const matchingLine = newLines.find(l => l.path === path);
+            
+            if (matchingLine && matchingLine.isCollapsible) {
+              arrowEl.style.transform = matchingLine.isCollapsed ? 'rotate(0deg)' : 'rotate(90deg)';
+            }
+          });
+        }
+      }, 0);
+      
+      return newLines;
     });
     
-    // 更新展开状态
-    setIsAllExpanded(false);
+    // 检查是否所有可折叠行都已展开
+    setTimeout(() => {
+      if (containerRef.current) {
+        const allArrows = containerRef.current.querySelectorAll('.arrow');
+        const allExpanded = Array.from(allArrows).every(a => a.style.transform.includes('rotate(90'));
+        setIsAllExpanded(allExpanded);
+      }
+    }, 10);
   }, []);
   
+  // 检查父级是否折叠
+  const isParentCollapsed = useCallback((path, lines) => {
+    // 如果是根节点，则不会被隐藏
+    if (path === 'root') return false;
+    
+    // 查找所有可能的父路径
+    const pathParts = path.split('.');
+    
+    // 从最近的父级开始检查
+    for (let i = pathParts.length - 1; i > 0; i--) {
+      const parentPath = pathParts.slice(0, i).join('.');
+      const parentLine = lines.find(l => l.path === parentPath);
+      
+      // 如果找到父级且父级已折叠，则当前行应该隐藏
+      if (parentLine && parentLine.isCollapsible && parentLine.isCollapsed) {
+        return true;
+      }
+    }
+    
+    // 检查数组索引路径
+    if (path.includes('[')) {
+      const arrayPath = path.substring(0, path.lastIndexOf('['));
+      const arrayLine = lines.find(l => l.path === arrayPath);
+      
+      if (arrayLine && arrayLine.isCollapsible && arrayLine.isCollapsed) {
+        return true;
+      }
+    }
+    
+    return false;
+  }, []);
+  
+  // 展开所有
+  const expandAll = useCallback(() => {
+    setJsonLines(prevLines => {
+      const newLines = prevLines.map(line => ({
+        ...line,
+        isCollapsed: false
+      }));
+      
+      // 强制重新渲染所有行
+      setTimeout(() => {
+        if (containerRef.current) {
+          // 更新所有行的可见性
+          const allLines = containerRef.current.querySelectorAll('.json-line');
+          allLines.forEach(line => {
+            line.classList.remove('hidden');
+          });
+          
+          // 更新所有箭头的旋转状态
+          const allArrows = containerRef.current.querySelectorAll('.arrow');
+          allArrows.forEach(arrow => {
+            arrow.style.transform = 'rotate(90deg)';
+          });
+        }
+      }, 0);
+      
+      return newLines;
+    });
+    
+    setIsAllExpanded(true);
+  }, []);
+  
+  // 折叠所有
+  const collapseAll = useCallback(() => {
+    setJsonLines(prevLines => {
+      const newLines = prevLines.map(line => ({
+        ...line,
+        isCollapsed: line.isCollapsible
+      }));
+      
+      // 强制重新渲染所有行
+      setTimeout(() => {
+        if (containerRef.current) {
+          // 更新所有行的可见性
+          const allLines = containerRef.current.querySelectorAll('.json-line');
+          allLines.forEach(line => {
+            const level = parseInt(line.getAttribute('data-level') || '0');
+            const isOpenBracket = line.hasAttribute('data-bracket-open');
+            
+            // 只保留第一级的开括号行可见
+            if (level > 0 || (level === 0 && !isOpenBracket)) {
+              line.classList.add('hidden');
+            } else {
+              line.classList.remove('hidden');
+            }
+          });
+          
+          // 更新所有箭头的旋转状态
+          const allArrows = containerRef.current.querySelectorAll('.arrow');
+          allArrows.forEach(arrow => {
+            arrow.style.transform = 'rotate(0deg)';
+          });
+        }
+      }, 0);
+      
+      return newLines;
+    });
+    
+    setIsAllExpanded(false);
+  }, []);
+
+  // 渲染单个JSON行
+  const renderJsonLine = useCallback((line, index) => {
+    const isSelected = selectedNodePath === line.path;
+    const lineClass = `json-line ${isSelected ? 'selected' : ''} ${line.hidden ? 'hidden' : ''}`;
+    
+    // 确保isCollapsed是布尔值
+    const isCollapsed = Boolean(line.isCollapsed);
+    
+    // 箭头旋转角度
+    const arrowRotation = isCollapsed ? 'rotate(0deg)' : 'rotate(90deg)';
+    
+    // 箭头HTML
+    let arrowHtml = '';
+    if (line.isCollapsible) {
+      arrowHtml = `
+        <span class="arrow-container" data-path="${line.path}">
+          <span class="arrow" style="transform: ${arrowRotation};" data-path="${line.path}">▶</span>
+        </span>
+      `;
+    } else {
+      arrowHtml = '<span class="arrow-placeholder"></span>';
+    }
+    
+    // 格式化内容，添加语法高亮
+    let formattedContent = line.content;
+    
+    // 处理键值对
+    if (line.content.includes('"') && line.content.includes(':')) {
+      const parts = line.content.split(':');
+      const key = parts[0].trim();
+      const value = parts.slice(1).join(':').trim();
+      
+      formattedContent = `<span class="json-key">${key}</span><span class="json-colon">: </span>`;
+      
+      // 处理值部分
+      if (value.startsWith('{') || value.startsWith('[')) {
+        formattedContent += `<span class="json-bracket">${value.charAt(0)}</span>${value.substring(1)}`;
+      } else if (value.includes('"')) {
+        formattedContent += `<span class="json-string">${value}</span>`;
+      } else if (['true', 'false'].includes(value.replace(',', ''))) {
+        formattedContent += `<span class="json-boolean">${value}</span>`;
+      } else if (value === 'null' || value === 'null,') {
+        formattedContent += `<span class="json-null">${value}</span>`;
+      } else if (!isNaN(parseFloat(value))) {
+        formattedContent += `<span class="json-number">${value}</span>`;
+      } else {
+        formattedContent += value;
+      }
+    } 
+    // 处理字符串值
+    else if (line.content.includes('"')) {
+      formattedContent = `<span class="json-string">${line.content}</span>`;
+    } 
+    // 处理对象括号
+    else if (line.content === '{' || line.content === '{,' || line.content === '}' || line.content === '},') {
+      formattedContent = `<span class="json-bracket">${line.content.charAt(0)}</span>${line.content.substring(1)}`;
+    } 
+    // 处理数组括号
+    else if (line.content === '[' || line.content === '[,' || line.content === ']' || line.content === '],') {
+      formattedContent = `<span class="json-bracket">${line.content.charAt(0)}</span>${line.content.substring(1)}`;
+    } 
+    // 处理布尔值
+    else if (['true', 'false', 'true,', 'false,'].includes(line.content)) {
+      formattedContent = `<span class="json-boolean">${line.content}</span>`;
+    } 
+    // 处理null值
+    else if (line.content === 'null' || line.content === 'null,') {
+      formattedContent = `<span class="json-null">${line.content}</span>`;
+    } 
+    // 处理数字
+    else if (!isNaN(parseFloat(line.content))) {
+      formattedContent = `<span class="json-number">${line.content}</span>`;
+    }
+    
+    // 处理逗号
+    if (formattedContent.endsWith(',')) {
+      formattedContent = formattedContent.substring(0, formattedContent.length - 1) + '<span class="json-comma">,</span>';
+    }
+    
+    // 行内容
+    const content = `
+      <div class="${lineClass}" 
+           data-path="${line.path}" 
+           data-level="${line.level}" 
+           ${line.isOpenBracket ? `data-bracket-open="${line.bracketType}"` : ''} 
+           ${line.isCloseBracket ? `data-bracket-close="${line.bracketType}"` : ''}>
+        <span class="line-number">${index + 1}</span>
+        <span class="line-content">
+          ${arrowHtml}
+          <span class="content" style="padding-left: ${line.level * 20}px">${formattedContent}</span>
+        </span>
+      </div>
+    `;
+    
+    return content;
+  }, [selectedNodePath]);
+
   // 切换展开/折叠状态
   const toggleExpandCollapse = useCallback(() => {
     if (isAllExpanded) {
@@ -352,89 +552,11 @@ const JsonViewer = ({ value, error, className, darkMode, onUpdate, hideHeader = 
     } else {
       expandAll();
     }
-  }, [isAllExpanded, collapseAll, expandAll]);
-
-  // 设置折叠功能
-  const setupCollapsible = useCallback(() => {
-    if (!containerRef.current) return;
-    
-    // 获取所有箭头元素
-    const arrows = containerRef.current.querySelectorAll('.arrow');
-    
-    const handleCollapse = (e) => {
-      const arrow = e.target;
-      const path = arrow.getAttribute('data-path');
-      const jsonLine = arrow.closest('.json-line');
-      const isCollapsed = arrow.classList.contains('collapsed');
-      
-      // 切换箭头状态
-      if (isCollapsed) {
-        arrow.classList.remove('collapsed');
-      } else {
-        arrow.classList.add('collapsed');
-      }
-      
-      // 查找括号类型
-      const bracketType = jsonLine.getAttribute('data-bracket-open');
-      const closingBracket = bracketType === '{' ? '}' : ']';
-      
-      // 查找起始层级
-      const startLevel = parseInt(jsonLine.getAttribute('data-level'));
-      
-      // 获取所有行
-      const allLines = containerRef.current.querySelectorAll('.json-line');
-      let currentLine = jsonLine.nextElementSibling;
-      let foundClosing = false;
-      
-      // 处理点击行之后的所有行
-      while (currentLine && !foundClosing) {
-        const currentLevel = parseInt(currentLine.getAttribute('data-level'));
-        const isClosingBracket = currentLine.hasAttribute('data-bracket-close') && 
-                                currentLine.getAttribute('data-bracket-close') === closingBracket &&
-                                currentLevel === startLevel;
-        
-        if (isClosingBracket) {
-          // 找到同级别的闭合括号
-          foundClosing = true;
-          if (isCollapsed) {
-            currentLine.classList.remove('hidden');
-          } else {
-            currentLine.classList.add('hidden');
-          }
-        } else if (currentLevel > startLevel) {
-          // 这是嵌套行，切换可见性
-          if (isCollapsed) {
-            currentLine.classList.remove('hidden');
-          } else {
-            currentLine.classList.add('hidden');
-          }
-        } else {
-          // 同级或更高级别，停止隐藏
-          break;
-        }
-        
-        currentLine = currentLine.nextElementSibling;
-      }
-      
-      // 阻止事件冒泡，防止触发节点选择
-      e.stopPropagation();
-    };
-    
-    // 为每个箭头添加点击事件
-    arrows.forEach(arrow => {
-      // 移除旧的事件监听器
-      const oldClone = arrow.cloneNode(true);
-      arrow.parentNode.replaceChild(oldClone, arrow);
-      
-      // 添加新的事件监听器
-      oldClone.addEventListener('click', handleCollapse);
-    });
-  }, []);
+  }, [isAllExpanded, expandAll, collapseAll]);
 
   // 解析JSON并生成行
   useEffect(() => {
     if (!value) {
-      setCollapsibleJson('');
       setJsonData(null);
       setJsonLines([]);
       return;
@@ -449,22 +571,20 @@ const JsonViewer = ({ value, error, className, darkMode, onUpdate, hideHeader = 
       const lines = generateFlatJson(parsed);
       setJsonLines(lines);
       
-      // 设置展开状态
+      // 设置展开状态 - 使用setTimeout确保DOM已更新
       setTimeout(() => {
         if (containerRef.current) {
-          setupCollapsible();
-          if (!isAllExpanded) {
-            collapseAll();
-          }
+          // 默认展开所有
+          expandAll();
+          setIsAllExpanded(true);
         }
-      }, 10);
+      }, 50); // 增加延迟时间，确保DOM已完全渲染
     } catch (err) {
       // 如果解析失败，保持原样显示
-      setCollapsibleJson(value);
       setJsonData(null);
       setJsonLines([]);
     }
-  }, [value, generateFlatJson, setupCollapsible, collapseAll, isAllExpanded]);
+  }, [value, generateFlatJson, expandAll]);
 
   // 确保暗黑模式变化时重新应用样式
   useEffect(() => {
@@ -501,218 +621,311 @@ const JsonViewer = ({ value, error, className, darkMode, onUpdate, hideHeader = 
     );
   }, [jsonLines, renderJsonLine, darkMode]);
 
+  // 定义样式对象
+  const styles = useMemo(() => ({
+    container: {
+      fontFamily: "'Roboto Mono', monospace",
+      fontSize: '14px',
+      lineHeight: '1.5',
+      color: darkMode ? 'white' : '#333',
+      borderRadius: '8px',
+      overflow: 'hidden',
+      position: 'relative',
+      height: '100%',
+      width: '100%',
+      display: 'flex',
+      flexDirection: 'column',
+      transition: 'all 0.3s ease'
+    },
+    header: {
+      display: hideHeader ? 'none' : 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: '8px 16px',
+      borderBottom: `1px solid ${darkMode ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.1)'}`,
+      background: 'transparent',
+      position: 'sticky',
+      top: 0,
+      zIndex: 10
+    },
+    pathNavigatorContainer: {
+      position: 'sticky',
+      top: hideHeader ? 0 : '40px',
+      zIndex: 9,
+      width: '100%',
+      background: 'var(--glass-bg-color)',
+      backdropFilter: 'blur(15px)',
+      WebkitBackdropFilter: 'blur(15px)'
+    },
+    headerTitle: {
+      margin: 0,
+      fontSize: '14px',
+      fontWeight: 'medium',
+      color: darkMode ? 'white' : '#333'
+    },
+    headerActions: {
+      display: 'flex',
+      gap: '8px'
+    },
+    button: {
+      padding: '4px 8px',
+      background: darkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)',
+      color: darkMode ? 'white' : '#333',
+      border: 'none',
+      borderRadius: '4px',
+      cursor: 'pointer',
+      fontSize: '12px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center'
+    },
+    content: {
+      padding: '8px 0',
+      position: 'relative',
+      flex: 1,
+      overflow: 'auto'
+    },
+    error: {
+      color: '#e74c3c',
+      padding: '16px',
+      fontFamily: "'Roboto Mono', monospace",
+      whiteSpace: 'pre-wrap',
+      wordBreak: 'break-word'
+    }
+  }), [darkMode, hideHeader]);
+
+  // 渲染JSON并设置事件监听器
+  useEffect(() => {
+    if (!containerRef.current || !jsonLines.length) return;
+    
+    // 渲染JSON行
+    const htmlContent = jsonLines.map((line, index) => renderJsonLine(line, index)).join('');
+    containerRef.current.innerHTML = htmlContent;
+    
+    // 添加内联样式
+    const styleElement = document.createElement('style');
+    styleElement.textContent = `
+      .json-line {
+        display: flex;
+        align-items: flex-start;
+        padding: 2px 0;
+        font-family: 'Roboto Mono', monospace;
+        white-space: pre;
+      }
+      
+      .json-line.selected {
+        background: ${darkMode ? 'rgba(25, 118, 210, 0.2)' : 'rgba(25, 118, 210, 0.1)'};
+      }
+      
+      .json-line.hidden {
+        display: none;
+      }
+      
+      .line-number {
+        display: inline-block;
+        min-width: 40px;
+        text-align: right;
+        padding-right: 10px;
+        color: ${darkMode ? 'rgba(255, 255, 255, 0.5)' : 'rgba(0, 0, 0, 0.4)'};
+        user-select: none;
+      }
+      
+      .line-content {
+        display: flex;
+        align-items: center;
+        flex: 1;
+      }
+      
+      .arrow-container {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 16px;
+        height: 16px;
+        margin-right: 4px;
+        cursor: pointer;
+        user-select: none;
+      }
+      
+      .arrow-placeholder {
+        display: inline-block;
+        width: 16px;
+        height: 16px;
+        margin-right: 4px;
+      }
+      
+      .arrow {
+        display: inline-block;
+        transform: rotate(90deg);
+        transition: transform 0.2s ease;
+        font-size: 10px;
+        line-height: 1;
+        color: ${darkMode ? 'white' : '#333'};
+      }
+      
+      .content {
+        padding-left: 4px;
+        flex: 1;
+        color: ${darkMode ? 'white' : '#333'};
+      }
+      
+      /* 语法高亮 */
+      .json-key {
+        color: ${darkMode ? '#ff9966' : '#e07c4c'};
+      }
+      
+      .json-string {
+        color: ${darkMode ? '#98c379' : '#50a14f'};
+      }
+      
+      .json-number {
+        color: ${darkMode ? '#d19a66' : '#c18401'};
+      }
+      
+      .json-boolean {
+        color: ${darkMode ? '#56b6c2' : '#0184bc'};
+      }
+      
+      .json-null {
+        color: ${darkMode ? '#56b6c2' : '#0184bc'};
+      }
+      
+      .json-bracket {
+        color: ${darkMode ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.7)'};
+      }
+      
+      .json-comma {
+        color: ${darkMode ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.7)'};
+      }
+      
+      .json-colon {
+        color: ${darkMode ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.7)'};
+      }
+    `;
+    
+    // 将样式添加到容器内部，而不是document.head
+    containerRef.current.appendChild(styleElement);
+    
+    // 设置行点击事件
+    const lines = containerRef.current.querySelectorAll('.json-line');
+    lines.forEach(line => {
+      line.addEventListener('click', (e) => {
+        if (e.target.closest('.arrow-container')) return; // 忽略箭头点击
+        
+        const path = line.getAttribute('data-path');
+        setSelectedNodePath(path);
+        setCurrentPath(path); // 更新当前路径，用于PathNavigator
+        
+        // 设置选中的节点信息
+        const matchingLine = jsonLines.find(l => l.path === path);
+        if (matchingLine) {
+          setSelectedNode(matchingLine);
+          
+          // 提取父类型和键名
+          const pathParts = path.split('.');
+          const keyName = pathParts.length > 1 ? pathParts[pathParts.length - 1] : null;
+          
+          // 检查是否是数组元素
+          const isArrayItem = keyName && keyName.includes('[');
+          const parentType = isArrayItem ? 'array' : 'object';
+          
+          setSelectedNodeParentType(parentType);
+          setSelectedNodeKey(keyName);
+        }
+        
+        // 移除所有选中状态
+        lines.forEach(l => l.classList.remove('selected'));
+        // 添加当前选中状态
+        line.classList.add('selected');
+      });
+    });
+    
+    // 设置箭头点击事件
+    const arrows = containerRef.current.querySelectorAll('.arrow-container');
+    arrows.forEach(arrowContainer => {
+      arrowContainer.addEventListener('click', (e) => {
+        e.stopPropagation(); // 阻止事件冒泡
+        
+        const arrow = arrowContainer.querySelector('.arrow');
+        if (!arrow) return;
+        
+        const path = arrow.getAttribute('data-path');
+        const line = jsonLines.find(l => l.path === path);
+        
+        if (line && line.isCollapsible) {
+          handleCollapse(arrow, line);
+        }
+      });
+    });
+    
+    // 初始化时检查是否所有行都已展开
+    const allArrows = containerRef.current.querySelectorAll('.arrow');
+    const allExpanded = Array.from(allArrows).every(a => a.style.transform.includes('rotate(90'));
+    setIsAllExpanded(allExpanded);
+    
+    // 清理函数
+    return () => {
+      // 移除事件监听器
+      lines.forEach(line => {
+        line.removeEventListener('click', () => {});
+      });
+      
+      arrows.forEach(arrow => {
+        arrow.removeEventListener('click', () => {});
+      });
+      
+      // 不需要移除样式元素，因为它是容器的子元素，会随容器一起被移除
+    };
+  }, [jsonLines, renderJsonLine, handleCollapse, darkMode]);
+
   return (
-    <Paper 
-      elevation={3} 
-      className={className}
-      sx={{ 
-        flex: 1, 
-        display: 'flex', 
-        flexDirection: 'column',
-        overflow: 'hidden',
-        border: `1px solid ${darkMode ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.1)'}`,
-        transition: 'all 0.3s ease',
-        background: darkMode ? 'var(--glass-bg-color)' : 'var(--glass-bg-color)',
-        backdropFilter: 'blur(15px)',
-        WebkitBackdropFilter: 'blur(15px)',
-        borderTopLeftRadius: hideHeader ? 0 : undefined,
-        borderTopRightRadius: hideHeader ? 0 : undefined,
-      }}
-    >
-      {!hideHeader && (
-        <Box sx={{ 
-          p: 2, 
-          borderBottom: `1px solid ${darkMode ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.1)'}`,
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center'
-        }}>
-          <Typography variant="subtitle1" sx={{ fontWeight: 'medium', color: darkMode ? 'white' : '#333' }}>
-            输出
-          </Typography>
-          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-            <IconButton 
-              size="small" 
+    <div className={`${className}`} style={{ height: '100%', width: '100%' }}>
+      <div style={styles.container} className="output-glassmorphism">
+        {!hideHeader && (
+          <Box sx={{ 
+            p: 2, 
+            borderBottom: `1px solid ${darkMode ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.1)'}`,
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
+          }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 'medium', color: darkMode ? 'white' : '#333' }}>
+              输出
+            </Typography>
+            <Button
+              size="small"
+              variant="text"
+              startIcon={isAllExpanded ? <UnfoldLessIcon /> : <UnfoldMoreIcon />}
               onClick={toggleExpandCollapse}
               sx={{ 
                 color: darkMode ? 'white' : '#333',
-                backgroundColor: darkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)',
-                '&:hover': {
-                  backgroundColor: darkMode ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.1)',
-                }
+                fontSize: '12px',
+                textTransform: 'none'
               }}
             >
-              {isAllExpanded ? <UnfoldLessIcon fontSize="small" /> : <UnfoldMoreIcon fontSize="small" />}
-            </IconButton>
-            <IconButton 
-              size="small" 
-              onClick={() => setWrapLines(!wrapLines)}
-              sx={{ 
-                color: darkMode ? 'white' : '#333',
-                backgroundColor: wrapLines ? (darkMode ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.1)') : (darkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)'),
-                '&:hover': {
-                  backgroundColor: darkMode ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.1)',
-                }
-              }}
-            >
-              <WrapTextIcon fontSize="small" />
-            </IconButton>
+              {isAllExpanded ? "全部折叠" : "全部展开"}
+            </Button>
           </Box>
-        </Box>
-      )}
-      
-      {error && (
-        <Alert severity="error" sx={{ m: 2, mb: 0 }}>
-          {error}
-        </Alert>
-      )}
-      
-      {/* 路径导航器 */}
-      <PathNavigator 
-        currentPath={currentPath} 
-        onPathClick={handlePathClick} 
-        darkMode={darkMode} 
-      />
-      
-      <Divider sx={{ borderColor: darkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)' }} />
-      
-      {/* JSON内容区域 */}
-      <Box 
-        ref={containerRef}
-        sx={{ 
-          flex: 1, 
-          overflow: 'hidden',
-          position: 'relative',
-          backgroundColor: 'transparent',
-          '& .json-line': {
-            display: 'flex',
-            alignItems: 'flex-start',
-            padding: '2px 0',
-            borderRadius: '4px',
-            '&:hover': {
-              backgroundColor: darkMode ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)',
-            },
-            '&.selected': {
-              backgroundColor: darkMode ? 'rgba(25, 118, 210, 0.2)' : 'rgba(25, 118, 210, 0.1)',
-            }
-          },
-          '& .line-number': {
-            color: darkMode ? 'rgba(255, 255, 255, 0.5)' : 'rgba(0, 0, 0, 0.4)',
-            textAlign: 'right',
-            paddingRight: '8px',
-            userSelect: 'none',
-            minWidth: '40px',
-            fontSize: '12px',
-          },
-          '& .line-content': {
-            display: 'flex',
-            alignItems: 'center',
-            flex: 1,
-          },
-          '& .arrow-container': {
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: '20px',
-          },
-          '& .content': {
-            flex: '1 1 auto',
-            whiteSpace: wrapLines ? 'pre-wrap' : 'pre',
-            wordBreak: wrapLines ? 'break-word' : 'normal',
-            overflowWrap: wrapLines ? 'break-word' : 'normal',
-            color: darkMode ? 'white' : '#333',
-          },
-          '& .json-comma': {
-            color: darkMode ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.7)',
-          },
-          '& .json-colon': {
-            color: darkMode ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.7)',
-          },
-          '& .json-key': {
-            color: darkMode ? '#ff9966' : '#e07c4c',
-          },
-          '& .json-string': {
-            color: darkMode ? '#98c379' : '#50a14f',
-          },
-          '& .json-number': {
-            color: darkMode ? '#d19a66' : '#c18401',
-          },
-          '& .json-boolean': {
-            color: darkMode ? '#56b6c2' : '#0184bc',
-          },
-          '& .json-null': {
-            color: darkMode ? '#56b6c2' : '#0184bc',
-          },
-          '& .json-bracket': {
-            color: darkMode ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.7)',
-          },
-          '& .arrow': {
-            cursor: 'pointer',
-            userSelect: 'none',
-            color: darkMode ? 'white' : '#333',
-            transition: 'transform 0.2s ease',
-            transform: 'rotate(90deg)',
-            display: 'inline-block',
-            width: '16px',
-            height: '16px',
-            textAlign: 'center',
-            lineHeight: '16px',
-            fontSize: '12px',
-            borderRadius: '2px',
-            '&:hover': {
-              backgroundColor: darkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)',
-            }
-          },
-          '& .arrow.collapsed': {
-            transform: 'rotate(0deg)',
-          },
-          '& .hidden': {
-            display: 'none',
-          },
-        }}
-      >
-        {jsonLines.length > 0 ? (
-          renderVirtualizedContent
-        ) : (
-          <SyntaxHighlighter 
-            language="json" 
-            style={darkMode ? atomOneDark : atomOneLight}
-            customStyle={{
-              margin: 0,
-              padding: '16px',
-              backgroundColor: 'transparent',
-              height: '100%',
-              color: darkMode ? 'white' : '#333',
-              background: 'transparent',
-            }}
-            showLineNumbers
-            wrapLines={wrapLines}
-            wrapLongLines={wrapLines}
-            lineNumberStyle={{
-              textAlign: 'right',
-              paddingRight: '16px',
-              color: darkMode ? 'rgba(255, 255, 255, 0.5)' : 'rgba(0, 0, 0, 0.4)',
-            }}
-          >
-            {value || ''}
-          </SyntaxHighlighter>
         )}
-      </Box>
-      
-      {/* 内联编辑器 */}
-      {selectedNode && onUpdate && (
-        <JsonInlineEditor
-          path={selectedNodePath}
-          value={selectedNodeValue}
-          parentType={selectedNodeParentType}
-          keyName={selectedNodeKey}
-          onUpdate={handleJsonUpdate}
-          onDelete={(path) => handleJsonUpdate(path, null, 'delete')}
-          onAdd={(path, newValue) => handleJsonUpdate(path, newValue, 'add')}
-          darkMode={darkMode}
-        />
-      )}
-    </Paper>
+        
+        {/* 添加路径导航器，使用固定定位 */}
+        <div style={styles.pathNavigatorContainer}>
+          <PathNavigator 
+            currentPath={currentPath} 
+            onPathClick={handlePathClick} 
+            darkMode={darkMode} 
+          />
+        </div>
+        
+        <Box sx={{ flex: 1, overflow: 'auto', position: 'relative' }}>
+          {error ? (
+            <div style={styles.error}>{error}</div>
+          ) : (
+            <div ref={containerRef} style={{ padding: '16px' }}></div>
+          )}
+        </Box>
+      </div>
+    </div>
   );
 };
 

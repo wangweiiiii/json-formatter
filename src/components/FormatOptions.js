@@ -46,7 +46,8 @@ const FormatOptions = ({
             backgroundColor: darkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)',
             '&:hover': {
               backgroundColor: darkMode ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.1)',
-            }
+            },
+            borderRadius: '8px',
           }}
         >
           <SettingsIcon />

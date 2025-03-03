@@ -20,7 +20,7 @@ const ControlPanel = ({ onFormat, onEscape, onUnescape, onClear, onCopy, darkMod
     fontWeight: 500,
     letterSpacing: '0.5px',
     padding: '8px 16px',
-    borderRadius: '12px',
+    borderRadius: '8px',
     textTransform: 'none',
     fontSize: '0.95rem',
     color: darkMode ? '#e0e0e0' : 'white'

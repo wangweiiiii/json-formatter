@@ -307,7 +307,8 @@ function App() {
                 backgroundColor: darkMode ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.08)',
                 '&:hover': {
                   backgroundColor: darkMode ? 'rgba(255, 255, 255, 0.25)' : 'rgba(0, 0, 0, 0.15)',
-                }
+                },
+                borderRadius: '8px',
               }}
             >
               {darkMode ? <Brightness7Icon /> : <Brightness4Icon />}
@@ -343,8 +344,8 @@ function App() {
               backgroundColor: darkMode ? 'var(--glass-bg-color)' : 'var(--glass-bg-color)',
               backdropFilter: 'blur(15px)',
               WebkitBackdropFilter: 'blur(15px)',
-              borderTopLeftRadius: '4px',
-              borderTopRightRadius: '4px',
+              borderTopLeftRadius: '8px',
+              borderTopRightRadius: '8px',
             }}>
               <Typography variant="subtitle1" sx={{ fontWeight: 'medium', color: darkMode ? 'white' : '#333' }}>
                 输入
@@ -374,8 +375,8 @@ function App() {
               backgroundColor: darkMode ? 'var(--glass-bg-color)' : 'var(--glass-bg-color)',
               backdropFilter: 'blur(15px)',
               WebkitBackdropFilter: 'blur(15px)',
-              borderTopLeftRadius: '4px',
-              borderTopRightRadius: '4px',
+              borderTopLeftRadius: '8px',
+              borderTopRightRadius: '8px',
             }}>
               <Typography variant="subtitle1" sx={{ fontWeight: 'medium', color: darkMode ? 'white' : '#333' }}>
                 输出
@@ -409,7 +410,7 @@ function App() {
               <JsonViewer 
                 value={output} 
                 error={error}
-                className={`glassmorphism ${darkMode ? 'dark' : 'light'}`}
+                className={`output-glassmorphism ${darkMode ? 'dark' : 'light'}`}
                 darkMode={darkMode}
                 onUpdate={handleJsonUpdate}
                 hideHeader={true}

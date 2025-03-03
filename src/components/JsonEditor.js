@@ -42,8 +42,9 @@ const JsonEditor = ({ value, onChange, className, darkMode, hideHeader = false }
         background: darkMode ? 'var(--glass-bg-color)' : 'var(--glass-bg-color)',
         backdropFilter: 'blur(15px)',
         WebkitBackdropFilter: 'blur(15px)',
-        borderTopLeftRadius: hideHeader ? 0 : undefined,
-        borderTopRightRadius: hideHeader ? 0 : undefined,
+        borderRadius: '8px',
+        borderTopLeftRadius: hideHeader ? 0 : '8px',
+        borderTopRightRadius: hideHeader ? 0 : '8px',
       }}
     >
       {!hideHeader && (

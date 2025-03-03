@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { Box, Alert, Paper } from '@mui/material';
 
 const JsonVisualizer = ({ data, darkMode, className }) => {
@@ -7,8 +7,8 @@ const JsonVisualizer = ({ data, darkMode, className }) => {
   const [error, setError] = useState(null);
   
   // 绘制树形图
-  const drawTreeVisualization = (ctx, jsonData, startX, startY) => {
-    if (!jsonData || typeof jsonData !== 'string' && typeof jsonData !== 'object') return;
+  const drawTreeVisualization = useCallback((ctx, jsonData, startX, startY) => {
+    if (!jsonData || (typeof jsonData !== 'string' && typeof jsonData !== 'object')) return;
     
     try {
       // 如果是字符串，尝试解析为JSON
@@ -91,13 +91,12 @@ const JsonVisualizer = ({ data, darkMode, className }) => {
         
         // 绘制值类型
         let valueType = '';
-        let displayValue = value;
         if (isChildObject) {
           valueType = Array.isArray(value) ? 'Array' : 'Object';
         } else {
           valueType = value === null ? 'null' : typeof value;
           if (typeof value === 'string' && value.length > 10) {
-            displayValue = value.substring(0, 8) + '...';
+            // 直接处理长字符串，不需要存储到变量中
           }
         }
         ctx.font = '12px Arial';
@@ -117,7 +116,7 @@ const JsonVisualizer = ({ data, darkMode, className }) => {
       console.error('Visualization error:', err);
       setError(`可视化错误: ${err.message}`);
     }
-  };
+  }, [darkMode]);
   
   useEffect(() => {
     const canvas = canvasRef.current;
