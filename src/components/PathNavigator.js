@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Box, Chip, IconButton, Tooltip, Snackbar, Alert } from '@mui/material';
+import { Box, Chip, IconButton, Tooltip, Snackbar, Paper } from '@mui/material';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import HomeIcon from '@mui/icons-material/Home';
+import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 
 const PathNavigator = ({ currentPath, onPathClick, darkMode }) => {
   const [snackbarOpen, setSnackbarOpen] = useState(false);
@@ -112,14 +113,31 @@ const PathNavigator = ({ currentPath, onPathClick, darkMode }) => {
         onClose={() => setSnackbarOpen(false)}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       >
-        <Alert 
-          onClose={() => setSnackbarOpen(false)} 
-          severity="success" 
-          variant="filled"
-          sx={{ width: '100%' }}
+        <Paper 
+          elevation={3}
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            padding: '10px 16px',
+            borderRadius: '8px',
+            backgroundColor: darkMode ? 'rgba(30, 30, 30, 0.85)' : 'rgba(255, 255, 255, 0.85)',
+            color: darkMode ? 'white' : '#333',
+            backdropFilter: 'blur(10px)',
+            WebkitBackdropFilter: 'blur(10px)',
+            border: `1px solid ${darkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)'}`,
+            boxShadow: darkMode 
+              ? '0 8px 32px rgba(0, 0, 0, 0.3)' 
+              : '0 8px 32px rgba(31, 38, 135, 0.1)',
+          }}
         >
+          <CheckCircleOutlineIcon 
+            sx={{ 
+              marginRight: 1.5, 
+              color: darkMode ? '#4caf50' : '#2e7d32'
+            }} 
+          />
           路径已复制到剪贴板
-        </Alert>
+        </Paper>
       </Snackbar>
     </Box>
   );

@@ -348,23 +348,25 @@ function App() {
               value={activeTab} 
               onChange={handleTabChange}
               sx={{ 
-                mb: 1,
+                minHeight: '36px',
                 '& .MuiTab-root': {
                   color: darkMode ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.7)',
                   '&.Mui-selected': {
                     color: darkMode ? 'white' : '#1976d2',
-                  }
+                  },
+                  minHeight: '36px',
+                  padding: '6px 12px'
                 },
                 '& .MuiTabs-indicator': {
                   backgroundColor: darkMode ? 'white' : '#1976d2',
                 }
               }}
             >
-              <Tab label="JSON 视图" />
-              <Tab label="可视化" />
+              <Tab label="JSON 视图" sx={{ fontSize: '0.875rem' }} />
+              <Tab label="可视化" sx={{ fontSize: '0.875rem' }} />
             </Tabs>
             
-            <Box sx={{ flex: 1, display: activeTab === 0 ? 'flex' : 'none' }}>
+            <Box sx={{ flex: 1, display: activeTab === 0 ? 'flex' : 'none', overflow: 'hidden' }}>
               <JsonViewer 
                 value={output} 
                 error={error}
@@ -374,7 +376,7 @@ function App() {
               />
             </Box>
             
-            <Box sx={{ flex: 1, display: activeTab === 1 ? 'flex' : 'none' }}>
+            <Box sx={{ flex: 1, display: activeTab === 1 ? 'flex' : 'none', overflow: 'hidden' }}>
               <JsonVisualizer 
                 data={output}
                 darkMode={darkMode}
