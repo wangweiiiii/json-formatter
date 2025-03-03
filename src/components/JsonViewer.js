@@ -113,10 +113,13 @@ const JsonViewer = ({ value, error, className }) => {
     lines.forEach((line, index) => {
       const indent = line.level * 20; // 20px per indent level
       const arrowHtml = line.isCollapsible 
-        ? `<span class="arrow" data-path="${line.path}">▶</span>` 
-        : '<span class="arrow-placeholder"></span>';
+        ? `<span class="arrow collapsed" data-path="${line.path}" style="display: inline-block; width: 16px; text-align: center;">▶</span>` 
+        : '<span class="arrow-placeholder" style="display: inline-block; width: 16px;"></span>';
       
-      html += `<div class="json-line" data-line="${index + 1}" data-path="${line.path}" data-level="${line.level}"`;
+      // 确定是否应该隐藏这一行
+      const isHidden = line.isCollapsible ? '' : '';
+      
+      html += `<div class="json-line${isHidden}" data-line="${index + 1}" data-path="${line.path}" data-level="${line.level}"`;
       
       if (line.isOpenBracket) {
         html += ` data-bracket-open="${line.bracketType}"`;
@@ -127,7 +130,7 @@ const JsonViewer = ({ value, error, className }) => {
       
       html += `>
         <div class="line-number">${index + 1}</div>
-        ${line.isCollapsible ? arrowHtml : '<span class="arrow-placeholder"></span>'}
+        ${line.isCollapsible ? arrowHtml : '<span class="arrow-placeholder" style="display: inline-block; width: 16px;"></span>'}
         <div class="content" style="padding-left: ${indent}px">${line.content}</div>
       </div>`;
     });
@@ -149,10 +152,8 @@ const JsonViewer = ({ value, error, className }) => {
       // Toggle arrow state
       if (isCollapsed) {
         arrow.classList.remove('collapsed');
-        arrow.textContent = '▶';
       } else {
         arrow.classList.add('collapsed');
-        arrow.textContent = '▼';
       }
       
       // Find the bracket type
@@ -177,10 +178,18 @@ const JsonViewer = ({ value, error, className }) => {
         if (isClosingBracket) {
           // Found the closing bracket at the same level
           foundClosing = true;
-          currentLine.classList.toggle('hidden', !isCollapsed);
+          if (isCollapsed) {
+            currentLine.classList.remove('hidden');
+          } else {
+            currentLine.classList.add('hidden');
+          }
         } else if (currentLevel > startLevel) {
           // This is a nested line, toggle visibility
-          currentLine.classList.toggle('hidden', !isCollapsed);
+          if (isCollapsed) {
+            currentLine.classList.remove('hidden');
+          } else {
+            currentLine.classList.add('hidden');
+          }
         } else {
           // Same or higher level, stop hiding
           break;
@@ -203,8 +212,7 @@ const JsonViewer = ({ value, error, className }) => {
     // Reset all arrows to expanded state
     const arrows = containerRef.current.querySelectorAll('.arrow');
     arrows.forEach(arrow => {
-      arrow.classList.remove('collapsed');
-      arrow.textContent = '▶';
+      arrow.classList.add('collapsed');
     });
     
     // Show all lines
@@ -225,8 +233,7 @@ const JsonViewer = ({ value, error, className }) => {
       const arrow = line.querySelector('.arrow');
       if (arrow) {
         // Set arrow to collapsed state
-        arrow.classList.add('collapsed');
-        arrow.textContent = '▼';
+        arrow.classList.remove('collapsed');
         
         // Get bracket type and level
         const bracketType = line.getAttribute('data-bracket-open');
@@ -277,6 +284,47 @@ const JsonViewer = ({ value, error, className }) => {
       // Setup collapsible functionality after a small delay
       setTimeout(() => {
         setupCollapsible();
+        
+        // 初始化时自动折叠所有节点
+        if (containerRef.current) {
+          // 获取所有可折叠行
+          const collapsibleLines = containerRef.current.querySelectorAll('.json-line[data-bracket-open]');
+          
+          collapsibleLines.forEach(line => {
+            const arrow = line.querySelector('.arrow');
+            if (arrow) {
+              // 获取括号类型和级别
+              const bracketType = line.getAttribute('data-bracket-open');
+              const closingBracket = bracketType === '{' ? '}' : ']';
+              const startLevel = parseInt(line.getAttribute('data-level'));
+              
+              // 查找并隐藏所有嵌套行
+              let currentLine = line.nextElementSibling;
+              let foundClosing = false;
+              
+              while (currentLine && !foundClosing) {
+                const currentLevel = parseInt(currentLine.getAttribute('data-level'));
+                const isClosingBracket = currentLine.hasAttribute('data-bracket-close') && 
+                                        currentLine.getAttribute('data-bracket-close') === closingBracket &&
+                                        currentLevel === startLevel;
+                
+                if (isClosingBracket) {
+                  // 找到闭合括号
+                  foundClosing = true;
+                  currentLine.classList.add('hidden');
+                } else if (currentLevel > startLevel) {
+                  // 这是嵌套行，隐藏它
+                  currentLine.classList.add('hidden');
+                } else {
+                  // 相同或更高级别，停止隐藏
+                  break;
+                }
+                
+                currentLine = currentLine.nextElementSibling;
+              }
+            }
+          });
+        }
       }, 0);
     } catch (err) {
       // If parsing fails, display as is
@@ -307,18 +355,44 @@ const JsonViewer = ({ value, error, className }) => {
         <Typography variant="subtitle1" sx={{ fontWeight: 'medium', color: 'white' }}>
           输出
         </Typography>
-        <Typography 
-          variant="caption" 
-          sx={{ 
-            cursor: 'pointer', 
-            color: 'white',
-            fontWeight: 'medium',
-            '&:hover': { textDecoration: 'underline' }
-          }}
-          onClick={() => setWrapLines(!wrapLines)}
-        >
-          {wrapLines ? '禁用换行' : '启用换行'}
-        </Typography>
+        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+          <Typography 
+            variant="caption" 
+            sx={{ 
+              cursor: 'pointer', 
+              color: 'white',
+              fontWeight: 'medium',
+              '&:hover': { textDecoration: 'underline' }
+            }}
+            onClick={expandAll}
+          >
+            展开全部
+          </Typography>
+          <Typography 
+            variant="caption" 
+            sx={{ 
+              cursor: 'pointer', 
+              color: 'white',
+              fontWeight: 'medium',
+              '&:hover': { textDecoration: 'underline' }
+            }}
+            onClick={collapseAll}
+          >
+            折叠全部
+          </Typography>
+          <Typography 
+            variant="caption" 
+            sx={{ 
+              cursor: 'pointer', 
+              color: 'white',
+              fontWeight: 'medium',
+              '&:hover': { textDecoration: 'underline' }
+            }}
+            onClick={() => setWrapLines(!wrapLines)}
+          >
+            {wrapLines ? '禁用换行' : '启用换行'}
+          </Typography>
+        </Box>
       </Box>
       
       {error && (
@@ -400,6 +474,21 @@ const JsonViewer = ({ value, error, className }) => {
           },
           '& .json-bracket': {
             color: 'rgba(255, 255, 255, 0.7)',
+          },
+          '& .arrow': {
+            cursor: 'pointer',
+            userSelect: 'none',
+            marginRight: '5px',
+            color: 'white',
+            transition: 'transform 0.2s ease',
+            transform: 'rotate(0deg)',
+            display: 'inline-block',
+          },
+          '& .arrow.collapsed': {
+            transform: 'rotate(90deg)',
+          },
+          '& .hidden': {
+            display: 'none',
           },
         }}
       >
