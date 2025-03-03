@@ -3,6 +3,7 @@ import { Box, Container, Typography, useTheme } from '@mui/material';
 import JsonEditor from './components/JsonEditor';
 import JsonViewer from './components/JsonViewer';
 import ControlPanel from './components/ControlPanel';
+import './GlassmorphismEffects.css'; // 引入毛玻璃效果样式
 
 function App() {
   const theme = useTheme();
@@ -83,40 +84,61 @@ function App() {
   };
 
   return (
-    <Container maxWidth="xl" sx={{ py: 4, height: '100vh', display: 'flex', flexDirection: 'column' }}>
-      <Typography variant="h3" component="h1" align="center" gutterBottom sx={{ 
-        color: theme.palette.primary.main,
-        fontWeight: 'bold',
-        mb: 4
-      }}>
-        JSON 格式化工具
-      </Typography>
+    <>
+      {/* 动态背景 */}
+      <div className="dynamic-bg">
+        <div className="bubble"></div>
+        <div className="bubble"></div>
+        <div className="bubble"></div>
+        <div className="bubble"></div>
+        <div className="bubble"></div>
+      </div>
       
-      <ControlPanel 
-        onFormat={handleFormat} 
-        onEscape={handleEscape} 
-        onUnescape={handleUnescape} 
-        onClear={handleClear} 
-        onCopy={handleCopy} 
-      />
-      
-      <Box sx={{ 
-        display: 'flex', 
-        gap: 3, 
-        flex: 1,
-        minHeight: 0,
-        mb: 2
-      }}>
-        <JsonEditor 
-          value={input} 
-          onChange={handleInputChange} 
+      <Container maxWidth="xl" sx={{ py: 4, height: '100vh', display: 'flex', flexDirection: 'column', position: 'relative', zIndex: 1 }}>
+        <Typography 
+          variant="h3" 
+          component="h1" 
+          align="center" 
+          gutterBottom 
+          sx={{ 
+            color: 'white',
+            fontWeight: '700',
+            mb: 4,
+            textShadow: '0 2px 10px rgba(0, 0, 0, 0.2)',
+            letterSpacing: '1px',
+          }}
+        >
+          JSON 格式化工具
+        </Typography>
+        
+        <ControlPanel 
+          onFormat={handleFormat} 
+          onEscape={handleEscape} 
+          onUnescape={handleUnescape} 
+          onClear={handleClear} 
+          onCopy={handleCopy} 
         />
-        <JsonViewer 
-          value={output} 
-          error={error}
-        />
-      </Box>
-    </Container>
+        
+        <Box sx={{ 
+          display: 'flex', 
+          gap: 3, 
+          flex: 1,
+          minHeight: 0,
+          mb: 2
+        }}>
+          <JsonEditor 
+            value={input} 
+            onChange={handleInputChange} 
+            className="glassmorphism"
+          />
+          <JsonViewer 
+            value={output} 
+            error={error}
+            className="glassmorphism"
+          />
+        </Box>
+      </Container>
+    </>
   );
 }
 

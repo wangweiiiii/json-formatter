@@ -7,7 +7,7 @@ import atomOneDark from 'react-syntax-highlighter/dist/esm/styles/hljs/atom-one-
 // Register JSON language
 SyntaxHighlighter.registerLanguage('json', json);
 
-const JsonViewer = ({ value, error }) => {
+const JsonViewer = ({ value, error, className }) => {
   const [collapsibleJson, setCollapsibleJson] = useState('');
   const containerRef = useRef(null);
   const [wrapLines, setWrapLines] = useState(false);
@@ -287,76 +287,42 @@ const JsonViewer = ({ value, error }) => {
   return (
     <Paper 
       elevation={3} 
+      className={className}
       sx={{ 
         flex: 1, 
         display: 'flex', 
         flexDirection: 'column',
         overflow: 'hidden',
-        border: '1px solid rgba(97, 175, 239, 0.2)',
-        backdropFilter: 'blur(10px)',
-        background: 'rgba(33, 37, 43, 0.8)',
+        border: '1px solid rgba(255, 255, 255, 0.2)',
+        transition: 'all 0.3s ease',
       }}
     >
       <Box sx={{ 
         p: 2, 
-        borderBottom: '1px solid rgba(97, 175, 239, 0.2)',
+        borderBottom: '1px solid rgba(255, 255, 255, 0.2)',
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center'
       }}>
-        <Typography variant="subtitle1" sx={{ fontWeight: 'medium', color: '#61afef' }}>
+        <Typography variant="subtitle1" sx={{ fontWeight: 'medium', color: 'white' }}>
           输出
         </Typography>
-        {collapsibleJson && (
-          <Box sx={{ display: 'flex', gap: 1 }}>
-            <button 
-              onClick={expandAll}
-              style={{
-                padding: '4px 8px',
-                fontSize: '12px',
-                backgroundColor: '#4a5568',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer'
-              }}
-            >
-              展开全部
-            </button>
-            <button 
-              onClick={collapseAll}
-              style={{
-                padding: '4px 8px',
-                fontSize: '12px',
-                backgroundColor: '#4a5568',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer'
-              }}
-            >
-              折叠全部
-            </button>
-            <button 
-              onClick={() => setWrapLines(!wrapLines)}
-              style={{
-                padding: '4px 8px',
-                fontSize: '12px',
-                backgroundColor: wrapLines ? '#61afef' : '#4a5568',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer'
-              }}
-            >
-              {wrapLines ? '关闭换行' : '开启换行'}
-            </button>
-          </Box>
-        )}
+        <Typography 
+          variant="caption" 
+          sx={{ 
+            cursor: 'pointer', 
+            color: 'white',
+            fontWeight: 'medium',
+            '&:hover': { textDecoration: 'underline' }
+          }}
+          onClick={() => setWrapLines(!wrapLines)}
+        >
+          {wrapLines ? '禁用换行' : '启用换行'}
+        </Typography>
       </Box>
       
       {error && (
-        <Alert severity="error" sx={{ m: 2 }}>
+        <Alert severity="error" sx={{ m: 2, mb: 0 }}>
           {error}
         </Alert>
       )}
@@ -367,37 +333,36 @@ const JsonViewer = ({ value, error }) => {
           flex: 1, 
           overflow: 'auto',
           position: 'relative',
-          backgroundColor: 'rgba(30, 34, 40, 0.95)',
           '& .json-viewer-container': {
+            padding: '16px',
             fontFamily: "'Roboto Mono', monospace",
             fontSize: '14px',
             lineHeight: '1.5',
-            color: '#abb2bf',
+            color: 'white',
           },
           '& .json-line': {
             display: 'flex',
-            minHeight: '1.5em',
-            position: 'relative',
-          },
-          '& .json-line.hidden': {
-            display: 'none',
+            alignItems: 'flex-start',
           },
           '& .line-number': {
-            width: '40px',
+            color: 'rgba(255, 255, 255, 0.5)',
             textAlign: 'right',
-            color: '#636d83',
-            fontSize: '12px',
+            paddingRight: '16px',
             userSelect: 'none',
-            paddingRight: '8px',
+            minWidth: '40px',
+          },
+          '& .line-content': {
+            display: 'flex',
+            alignItems: 'flex-start',
+            flex: 1,
+          },
+          '& .indent': {
+            width: '20px',
+            height: '20px',
             flexShrink: 0,
           },
-          '& .arrow, & .arrow-placeholder': {
-            width: '15px',
-            height: '15px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: '#61afef',
+          '& .toggle-arrow': {
+            color: 'white',
             fontSize: '10px',
             cursor: 'pointer',
             flexShrink: 0,
@@ -410,15 +375,16 @@ const JsonViewer = ({ value, error }) => {
             whiteSpace: wrapLines ? 'pre-wrap' : 'pre',
             wordBreak: wrapLines ? 'break-word' : 'normal',
             overflowWrap: wrapLines ? 'break-word' : 'normal',
+            color: 'white',
           },
           '& .json-comma': {
-            color: '#abb2bf',
+            color: 'rgba(255, 255, 255, 0.7)',
           },
           '& .json-colon': {
-            color: '#abb2bf',
+            color: 'rgba(255, 255, 255, 0.7)',
           },
           '& .json-key': {
-            color: '#e06c75',
+            color: '#ff9966',
           },
           '& .json-string': {
             color: '#98c379',
@@ -433,7 +399,7 @@ const JsonViewer = ({ value, error }) => {
             color: '#56b6c2',
           },
           '& .json-bracket': {
-            color: '#abb2bf',
+            color: 'rgba(255, 255, 255, 0.7)',
           },
         }}
       >
@@ -442,12 +408,19 @@ const JsonViewer = ({ value, error }) => {
         ) : (
           <SyntaxHighlighter 
             language="json" 
-            style={atomOneDark}
+            style={{
+              ...atomOneDark,
+              'hljs': {
+                ...atomOneDark.hljs,
+                color: 'white',
+              }
+            }}
             customStyle={{
               margin: 0,
               padding: '16px',
               backgroundColor: 'transparent',
               height: '100%',
+              color: 'white',
             }}
             showLineNumbers
             wrapLines={wrapLines}
@@ -455,7 +428,7 @@ const JsonViewer = ({ value, error }) => {
             lineNumberStyle={{
               textAlign: 'right',
               paddingRight: '16px',
-              color: '#636d83',
+              color: 'rgba(255, 255, 255, 0.5)',
             }}
           >
             {value || ''}
