@@ -177,10 +177,64 @@ const JsonViewer = ({ value, error, className, darkMode, onUpdate, hideHeader = 
     if (containerRef.current) {
       const targetLine = containerRef.current.querySelector(`[data-path="${path}"]`);
       if (targetLine) {
-        targetLine.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        // 移除所有选中状态
+        const allLines = containerRef.current.querySelectorAll('.json-line');
+        allLines.forEach(line => line.classList.remove('selected'));
+        
+        // 添加当前选中状态
+        targetLine.classList.add('selected');
+        
+        // 确保目标行可见（如果被折叠了，需要展开）
+        const pathParts = path.split(/\.(?![^\[]*\])/);
+        let currentPath = '';
+        
+        // 从根节点开始，确保每一级路径都是展开的
+        for (let i = 0; i < pathParts.length; i++) {
+          if (i === 0) {
+            currentPath = pathParts[i];
+          } else {
+            currentPath = `${currentPath}.${pathParts[i]}`;
+          }
+          
+          // 找到对应的箭头并确保展开
+          const arrow = containerRef.current.querySelector(`.arrow[data-path="${currentPath}"]`);
+          if (arrow) {
+            const isCollapsed = arrow.style.transform !== 'rotate(90deg)';
+            if (isCollapsed) {
+              // 找到对应的行
+              const line = jsonLines.find(l => l.path === currentPath);
+              if (line && line.isCollapsible) {
+                handleCollapse(arrow, line);
+              }
+            }
+          }
+        }
+        
+        // 滚动到目标行
+        setTimeout(() => {
+          targetLine.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 100);
+        
+        // 更新选中节点信息
+        const matchingLine = jsonLines.find(l => l.path === path);
+        if (matchingLine) {
+          setSelectedNode(matchingLine);
+          setSelectedNodePath(path);
+          
+          // 提取父类型和键名
+          const pathParts = path.split('.');
+          const keyName = pathParts.length > 1 ? pathParts[pathParts.length - 1] : null;
+          
+          // 检查是否是数组元素
+          const isArrayItem = keyName && keyName.includes('[');
+          const parentType = isArrayItem ? 'array' : 'object';
+          
+          setSelectedNodeParentType(parentType);
+          setSelectedNodeKey(keyName);
+        }
       }
     }
-  }, []);
+  }, [jsonLines, handleCollapse]);
 
   // 处理节点选择
   const handleNodeSelect = useCallback((line, event) => {
@@ -653,9 +707,11 @@ const JsonViewer = ({ value, error, className, darkMode, onUpdate, hideHeader = 
       top: hideHeader ? 0 : '40px',
       zIndex: 9,
       width: '100%',
-      background: 'var(--glass-bg-color)',
-      backdropFilter: 'blur(15px)',
-      WebkitBackdropFilter: 'blur(15px)'
+      background: darkMode ? 'rgba(30, 30, 30, 0.3)' : 'rgba(240, 240, 240, 0.3)',
+      backdropFilter: 'blur(10px)',
+      WebkitBackdropFilter: 'blur(10px)',
+      borderBottom: `1px solid ${darkMode ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.1)'}`,
+      boxShadow: '0 2px 4px rgba(0, 0, 0, 0.05)'
     },
     headerTitle: {
       margin: 0,
