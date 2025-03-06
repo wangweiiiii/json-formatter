@@ -169,6 +169,127 @@ const JsonViewer = ({ value, error, className, darkMode, onUpdate, hideHeader = 
     return lines;
   }, [formatPrimitive]);
 
+  // 检查父级是否折叠
+  const isParentCollapsed = useCallback((path, lines) => {
+    // 如果是根节点，则不会被隐藏
+    if (path === 'root') return false;
+    
+    // 查找所有可能的父路径
+    const pathParts = path.split('.');
+    
+    // 从最近的父级开始检查
+    for (let i = pathParts.length - 1; i > 0; i--) {
+      const parentPath = pathParts.slice(0, i).join('.');
+      const parentLine = lines.find(l => l.path === parentPath);
+      
+      // 如果找到父级且父级已折叠，则当前行应该隐藏
+      if (parentLine && parentLine.isCollapsible && parentLine.isCollapsed) {
+        return true;
+      }
+    }
+    
+    // 检查数组索引路径
+    if (path.includes('[')) {
+      const arrayPath = path.substring(0, path.lastIndexOf('['));
+      const arrayLine = lines.find(l => l.path === arrayPath);
+      
+      if (arrayLine && arrayLine.isCollapsible && arrayLine.isCollapsed) {
+        return true;
+      }
+    }
+    
+    return false;
+  }, []);
+
+  // 处理折叠/展开
+  const handleCollapse = useCallback((arrow, line) => {
+    if (!containerRef.current) return;
+    
+    // 获取当前行和相关信息
+    const lineElement = arrow.closest('.json-line');
+    if (!lineElement) return;
+    
+    // 确定当前折叠状态 - 直接从DOM元素的transform属性判断
+    const currentTransform = arrow.style.transform || '';
+    const isCurrentlyCollapsed = !currentTransform.includes('rotate(90deg)');
+    
+    // 切换折叠状态
+    const newCollapsedState = !isCurrentlyCollapsed;
+    
+    // 更新箭头旋转
+    arrow.style.transform = newCollapsedState ? 'rotate(0deg)' : 'rotate(90deg)';
+    
+    // 更新 jsonLines 中对应行的 isCollapsed 状态
+    setJsonLines(prevLines => {
+      return prevLines.map(l => {
+        if (l.path === line.path) {
+          return { ...l, isCollapsed: newCollapsedState };
+        }
+        return l;
+      });
+    });
+    
+    // 获取当前行的级别和路径
+    const currentLevel = parseInt(lineElement.getAttribute('data-level') || '0');
+    const currentPath = lineElement.getAttribute('data-path');
+    
+    // 找到所有需要隐藏/显示的行
+    const allLines = containerRef.current.querySelectorAll('.json-line');
+    let inTargetSection = false;
+    let affectedLines = [];
+    
+    // 遍历所有行，找出受影响的行
+    for (let i = 0; i < allLines.length; i++) {
+      const l = allLines[i];
+      const path = l.getAttribute('data-path');
+      const level = parseInt(l.getAttribute('data-level') || '0');
+      
+      // 如果找到当前行，标记开始处理子行
+      if (path === currentPath) {
+        inTargetSection = true;
+        continue; // 跳过当前行
+      }
+      
+      // 如果在目标区域内
+      if (inTargetSection) {
+        // 如果遇到同级或更高级的行，结束处理
+        if (level <= currentLevel) {
+          inTargetSection = false;
+          break;
+        }
+        
+        // 添加到受影响的行
+        affectedLines.push(l);
+      }
+    }
+    
+    // 应用可见性变化 - 简化逻辑
+    affectedLines.forEach(l => {
+      if (newCollapsedState) {
+        // 折叠 - 隐藏所有子行
+        l.classList.add('hidden');
+      } else {
+        // 展开 - 只显示直接子行
+        const lineLevel = parseInt(l.getAttribute('data-level') || '0');
+        if (lineLevel === currentLevel + 1) {
+          l.classList.remove('hidden');
+        }
+      }
+    });
+    
+    // 检查是否所有行都已展开
+    setTimeout(() => {
+      if (containerRef.current) {
+        const allArrows = containerRef.current.querySelectorAll('.arrow');
+        const allExpanded = Array.from(allArrows).every(a => {
+          const transform = a.style.transform || '';
+          return transform.includes('rotate(90deg)');
+        });
+        setIsAllExpanded(allExpanded);
+      }
+    }, 0);
+  }, []);
+
   // 处理路径点击
   const handlePathClick = useCallback((path) => {
     setCurrentPath(path);
@@ -331,107 +452,6 @@ const JsonViewer = ({ value, error, className, darkMode, onUpdate, hideHeader = 
     onUpdate(JSON.stringify(newData, null, 2));
   }, [jsonData, onUpdate]);
 
-  // 处理折叠/展开
-  const handleCollapse = useCallback((arrow, line) => {
-    if (!containerRef.current) return;
-    
-    // 获取当前行和相关信息
-    const lineElement = arrow.closest('.json-line');
-    if (!lineElement) return;
-    
-    // 获取当前折叠状态 - 直接从line对象获取
-    const isCollapsed = line.isCollapsed;
-    
-    // 更新 jsonLines 中对应行的 isCollapsed 状态
-    setJsonLines(prevLines => {
-      // 创建一个新的数组，更新指定行的折叠状态
-      const newLines = prevLines.map(l => {
-        if (l.path === line.path) {
-          return { ...l, isCollapsed: !isCollapsed };
-        }
-        return l;
-      });
-      
-      // 强制重新渲染所有行
-      setTimeout(() => {
-        // 在状态更新后，手动更新DOM
-        if (containerRef.current) {
-          const allLines = containerRef.current.querySelectorAll('.json-line');
-          const allArrows = containerRef.current.querySelectorAll('.arrow');
-          
-          // 更新所有行的可见性
-          allLines.forEach(lineEl => {
-            const path = lineEl.getAttribute('data-path');
-            const matchingLine = newLines.find(l => l.path === path);
-            
-            if (matchingLine) {
-              // 如果是折叠状态且是嵌套行，则隐藏
-              const shouldBeHidden = isParentCollapsed(matchingLine.path, newLines);
-              if (shouldBeHidden) {
-                lineEl.classList.add('hidden');
-              } else {
-                lineEl.classList.remove('hidden');
-              }
-            }
-          });
-          
-          // 更新所有箭头的旋转状态
-          allArrows.forEach(arrowEl => {
-            const path = arrowEl.getAttribute('data-path');
-            const matchingLine = newLines.find(l => l.path === path);
-            
-            if (matchingLine && matchingLine.isCollapsible) {
-              arrowEl.style.transform = matchingLine.isCollapsed ? 'rotate(0deg)' : 'rotate(90deg)';
-            }
-          });
-        }
-      }, 0);
-      
-      return newLines;
-    });
-    
-    // 检查是否所有可折叠行都已展开
-    setTimeout(() => {
-      if (containerRef.current) {
-        const allArrows = containerRef.current.querySelectorAll('.arrow');
-        const allExpanded = Array.from(allArrows).every(a => a.style.transform.includes('rotate(90'));
-        setIsAllExpanded(allExpanded);
-      }
-    }, 10);
-  }, []);
-  
-  // 检查父级是否折叠
-  const isParentCollapsed = useCallback((path, lines) => {
-    // 如果是根节点，则不会被隐藏
-    if (path === 'root') return false;
-    
-    // 查找所有可能的父路径
-    const pathParts = path.split('.');
-    
-    // 从最近的父级开始检查
-    for (let i = pathParts.length - 1; i > 0; i--) {
-      const parentPath = pathParts.slice(0, i).join('.');
-      const parentLine = lines.find(l => l.path === parentPath);
-      
-      // 如果找到父级且父级已折叠，则当前行应该隐藏
-      if (parentLine && parentLine.isCollapsible && parentLine.isCollapsed) {
-        return true;
-      }
-    }
-    
-    // 检查数组索引路径
-    if (path.includes('[')) {
-      const arrayPath = path.substring(0, path.lastIndexOf('['));
-      const arrayLine = lines.find(l => l.path === arrayPath);
-      
-      if (arrayLine && arrayLine.isCollapsible && arrayLine.isCollapsed) {
-        return true;
-      }
-    }
-    
-    return false;
-  }, []);
-  
   // 展开所有
   const expandAll = useCallback(() => {
     setJsonLines(prevLines => {
@@ -443,19 +463,25 @@ const JsonViewer = ({ value, error, className, darkMode, onUpdate, hideHeader = 
       // 强制重新渲染所有行
       setTimeout(() => {
         if (containerRef.current) {
-          // 更新所有行的可见性
-          const allLines = containerRef.current.querySelectorAll('.json-line');
-          allLines.forEach(line => {
-            line.classList.remove('hidden');
-          });
-          
-          // 更新所有箭头的旋转状态
-          const allArrows = containerRef.current.querySelectorAll('.arrow');
-          allArrows.forEach(arrow => {
-            arrow.style.transform = 'rotate(90deg)';
-          });
+          try {
+            // 更新所有行的可见性
+            const allLines = containerRef.current.querySelectorAll('.json-line');
+            allLines.forEach(line => {
+              line.classList.remove('hidden');
+            });
+            
+            // 更新所有箭头的旋转状态
+            const allArrows = containerRef.current.querySelectorAll('.arrow');
+            allArrows.forEach(arrow => {
+              if (arrow) {
+                arrow.style.transform = 'rotate(90deg)';
+              }
+            });
+          } catch (err) {
+            console.error('展开所有行时出错:', err);
+          }
         }
-      }, 0);
+      }, 50);
       
       return newLines;
     });
@@ -474,27 +500,33 @@ const JsonViewer = ({ value, error, className, darkMode, onUpdate, hideHeader = 
       // 强制重新渲染所有行
       setTimeout(() => {
         if (containerRef.current) {
-          // 更新所有行的可见性
-          const allLines = containerRef.current.querySelectorAll('.json-line');
-          allLines.forEach(line => {
-            const level = parseInt(line.getAttribute('data-level') || '0');
-            const isOpenBracket = line.hasAttribute('data-bracket-open');
+          try {
+            // 更新所有行的可见性
+            const allLines = containerRef.current.querySelectorAll('.json-line');
+            allLines.forEach(line => {
+              const level = parseInt(line.getAttribute('data-level') || '0');
+              const isOpenBracket = line.hasAttribute('data-bracket-open');
+              
+              // 只保留第一级的开括号行可见
+              if (level > 0 || (level === 0 && !isOpenBracket)) {
+                line.classList.add('hidden');
+              } else {
+                line.classList.remove('hidden');
+              }
+            });
             
-            // 只保留第一级的开括号行可见
-            if (level > 0 || (level === 0 && !isOpenBracket)) {
-              line.classList.add('hidden');
-            } else {
-              line.classList.remove('hidden');
-            }
-          });
-          
-          // 更新所有箭头的旋转状态
-          const allArrows = containerRef.current.querySelectorAll('.arrow');
-          allArrows.forEach(arrow => {
-            arrow.style.transform = 'rotate(0deg)';
-          });
+            // 更新所有箭头的旋转状态
+            const allArrows = containerRef.current.querySelectorAll('.arrow');
+            allArrows.forEach(arrow => {
+              if (arrow) {
+                arrow.style.transform = 'rotate(0deg)';
+              }
+            });
+          } catch (err) {
+            console.error('折叠所有行时出错:', err);
+          }
         }
-      }, 0);
+      }, 50);
       
       return newLines;
     });
@@ -504,99 +536,104 @@ const JsonViewer = ({ value, error, className, darkMode, onUpdate, hideHeader = 
 
   // 渲染单个JSON行
   const renderJsonLine = useCallback((line, index) => {
-    const isSelected = selectedNodePath === line.path;
-    const lineClass = `json-line ${isSelected ? 'selected' : ''} ${line.hidden ? 'hidden' : ''}`;
-    
-    // 确保isCollapsed是布尔值
-    const isCollapsed = Boolean(line.isCollapsed);
-    
-    // 箭头旋转角度
-    const arrowRotation = isCollapsed ? 'rotate(0deg)' : 'rotate(90deg)';
-    
-    // 箭头HTML
-    let arrowHtml = '';
-    if (line.isCollapsible) {
-      arrowHtml = `
-        <span class="arrow-container" data-path="${line.path}">
-          <span class="arrow" style="transform: ${arrowRotation};" data-path="${line.path}">▶</span>
-        </span>
-      `;
-    } else {
-      arrowHtml = '<span class="arrow-placeholder"></span>';
-    }
-    
-    // 格式化内容，添加语法高亮
-    let formattedContent = line.content;
-    
-    // 处理键值对
-    if (line.content.includes('"') && line.content.includes(':')) {
-      const parts = line.content.split(':');
-      const key = parts[0].trim();
-      const value = parts.slice(1).join(':').trim();
+    try {
+      const isSelected = selectedNodePath === line.path;
+      const lineClass = `json-line ${isSelected ? 'selected' : ''} ${line.hidden ? 'hidden' : ''}`;
       
-      formattedContent = `<span class="json-key">${key}</span><span class="json-colon">: </span>`;
+      // 确保isCollapsed是布尔值
+      const isCollapsed = Boolean(line.isCollapsed);
       
-      // 处理值部分
-      if (value.startsWith('{') || value.startsWith('[')) {
-        formattedContent += `<span class="json-bracket">${value.charAt(0)}</span>${value.substring(1)}`;
-      } else if (value.includes('"')) {
-        formattedContent += `<span class="json-string">${value}</span>`;
-      } else if (['true', 'false'].includes(value.replace(',', ''))) {
-        formattedContent += `<span class="json-boolean">${value}</span>`;
-      } else if (value === 'null' || value === 'null,') {
-        formattedContent += `<span class="json-null">${value}</span>`;
-      } else if (!isNaN(parseFloat(value))) {
-        formattedContent += `<span class="json-number">${value}</span>`;
+      // 箭头旋转角度 - 确保始终有明确的值
+      const arrowRotation = isCollapsed ? 'rotate(0deg)' : 'rotate(90deg)';
+      
+      // 箭头HTML
+      let arrowHtml = '';
+      if (line.isCollapsible) {
+        arrowHtml = `
+          <span class="arrow-container" data-path="${line.path}">
+            <span class="arrow" style="transform: ${arrowRotation};" data-path="${line.path}">▶</span>
+          </span>
+        `;
       } else {
-        formattedContent += value;
+        arrowHtml = '<span class="arrow-placeholder"></span>';
       }
-    } 
-    // 处理字符串值
-    else if (line.content.includes('"')) {
-      formattedContent = `<span class="json-string">${line.content}</span>`;
-    } 
-    // 处理对象括号
-    else if (line.content === '{' || line.content === '{,' || line.content === '}' || line.content === '},') {
-      formattedContent = `<span class="json-bracket">${line.content.charAt(0)}</span>${line.content.substring(1)}`;
-    } 
-    // 处理数组括号
-    else if (line.content === '[' || line.content === '[,' || line.content === ']' || line.content === '],') {
-      formattedContent = `<span class="json-bracket">${line.content.charAt(0)}</span>${line.content.substring(1)}`;
-    } 
-    // 处理布尔值
-    else if (['true', 'false', 'true,', 'false,'].includes(line.content)) {
-      formattedContent = `<span class="json-boolean">${line.content}</span>`;
-    } 
-    // 处理null值
-    else if (line.content === 'null' || line.content === 'null,') {
-      formattedContent = `<span class="json-null">${line.content}</span>`;
-    } 
-    // 处理数字
-    else if (!isNaN(parseFloat(line.content))) {
-      formattedContent = `<span class="json-number">${line.content}</span>`;
+      
+      // 格式化内容，添加语法高亮
+      let formattedContent = line.content;
+      
+      // 处理键值对
+      if (line.content.includes('"') && line.content.includes(':')) {
+        const parts = line.content.split(':');
+        const key = parts[0].trim();
+        const value = parts.slice(1).join(':').trim();
+        
+        formattedContent = `<span class="json-key">${key}</span><span class="json-colon">: </span>`;
+        
+        // 处理值部分
+        if (value.startsWith('{') || value.startsWith('[')) {
+          formattedContent += `<span class="json-bracket">${value.charAt(0)}</span>${value.substring(1)}`;
+        } else if (value.includes('"')) {
+          formattedContent += `<span class="json-string">${value}</span>`;
+        } else if (['true', 'false'].includes(value.replace(',', ''))) {
+          formattedContent += `<span class="json-boolean">${value}</span>`;
+        } else if (value === 'null' || value === 'null,') {
+          formattedContent += `<span class="json-null">${value}</span>`;
+        } else if (!isNaN(parseFloat(value))) {
+          formattedContent += `<span class="json-number">${value}</span>`;
+        } else {
+          formattedContent += value;
+        }
+      } 
+      // 处理字符串值
+      else if (line.content.includes('"')) {
+        formattedContent = `<span class="json-string">${line.content}</span>`;
+      } 
+      // 处理对象括号
+      else if (line.content === '{' || line.content === '{,' || line.content === '}' || line.content === '},') {
+        formattedContent = `<span class="json-bracket">${line.content.charAt(0)}</span>${line.content.substring(1)}`;
+      } 
+      // 处理数组括号
+      else if (line.content === '[' || line.content === '[,' || line.content === ']' || line.content === '],') {
+        formattedContent = `<span class="json-bracket">${line.content.charAt(0)}</span>${line.content.substring(1)}`;
+      } 
+      // 处理布尔值
+      else if (['true', 'false', 'true,', 'false,'].includes(line.content)) {
+        formattedContent = `<span class="json-boolean">${line.content}</span>`;
+      } 
+      // 处理null值
+      else if (line.content === 'null' || line.content === 'null,') {
+        formattedContent = `<span class="json-null">${line.content}</span>`;
+      } 
+      // 处理数字
+      else if (!isNaN(parseFloat(line.content))) {
+        formattedContent = `<span class="json-number">${line.content}</span>`;
+      }
+      
+      // 处理逗号
+      if (formattedContent.endsWith(',')) {
+        formattedContent = formattedContent.substring(0, formattedContent.length - 1) + '<span class="json-comma">,</span>';
+      }
+      
+      // 行内容
+      const content = `
+        <div class="${lineClass}" 
+             data-path="${line.path}" 
+             data-level="${line.level}" 
+             ${line.isOpenBracket ? `data-bracket-open="${line.bracketType}"` : ''} 
+             ${line.isCloseBracket ? `data-bracket-close="${line.bracketType}"` : ''}>
+          <span class="line-number">${index + 1}</span>
+          <span class="line-content">
+            ${arrowHtml}
+            <span class="content" style="padding-left: ${line.level * 20}px">${formattedContent}</span>
+          </span>
+        </div>
+      `;
+      
+      return content;
+    } catch (err) {
+      console.error('渲染JSON行时出错:', err, line);
+      return `<div class="json-line error">Error rendering line: ${err.message}</div>`;
     }
-    
-    // 处理逗号
-    if (formattedContent.endsWith(',')) {
-      formattedContent = formattedContent.substring(0, formattedContent.length - 1) + '<span class="json-comma">,</span>';
-    }
-    
-    // 行内容
-    const content = `
-      <div class="${lineClass}" 
-           data-path="${line.path}" 
-           data-level="${line.level}" 
-           ${line.isOpenBracket ? `data-bracket-open="${line.bracketType}"` : ''} 
-           ${line.isCloseBracket ? `data-bracket-close="${line.bracketType}"` : ''}>
-        <span class="line-number">${index + 1}</span>
-        <span class="line-content">
-          ${arrowHtml}
-          <span class="content" style="padding-left: ${line.level * 20}px">${formattedContent}</span>
-        </span>
-      </div>
-    `;
-    
-    return content;
   }, [selectedNodePath]);
 
   // 切换展开/折叠状态
@@ -618,7 +655,7 @@ const JsonViewer = ({ value, error, className, darkMode, onUpdate, hideHeader = 
 
     try {
       // 解析JSON
-      const parsed = JSON.parse(value);
+      const parsed = typeof value === 'string' ? JSON.parse(value) : value;
       setJsonData(parsed);
       
       // 生成行数据
@@ -632,9 +669,10 @@ const JsonViewer = ({ value, error, className, darkMode, onUpdate, hideHeader = 
           expandAll();
           setIsAllExpanded(true);
         }
-      }, 50); // 增加延迟时间，确保DOM已完全渲染
+      }, 200); // 增加延迟时间，确保DOM已完全渲染
     } catch (err) {
       // 如果解析失败，保持原样显示
+      console.error('JSON解析错误:', err);
       setJsonData(null);
       setJsonLines([]);
     }
